@@ -1,0 +1,32 @@
+"""骨架期自检：键位表与退出码的单点定义不得漂移。"""
+
+from testdeck import exit_codes, keys
+from testdeck.cli import main
+
+
+def test_bindings_cover_all_keys():
+    expected = {"down", "up", "first", "last", "enter", "flaky", "slow", "diff",
+                "search", "export", "help"}
+    assert set(keys.BINDINGS) == expected
+    assert len(keys.KEYS) == len(keys.BINDINGS)
+
+
+def test_display_keys_match_bindings():
+    """展示表的键面与绑定表的键值必须是同一组（大小写与 Enter 别名归一）。"""
+    display = {label for label, _ in keys.KEYS}
+    bound = {("Enter" if v == "enter" else v) for v in keys.BINDINGS.values()}
+    assert display == bound
+
+
+def test_exit_codes_are_contiguous():
+    codes = {exit_codes.OK, exit_codes.GATE_TRIGGERED, exit_codes.USAGE,
+             exit_codes.DEPENDENCY, exit_codes.NOT_READY}
+    assert codes == set(range(5))
+
+
+def test_selftest_exits_zero():
+    assert main(["selftest"]) == exit_codes.OK
+
+
+def test_unknown_command_is_usage_error():
+    assert main([]) == exit_codes.USAGE

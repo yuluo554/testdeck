@@ -1,0 +1,83 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+develop-eggs/
+downloads/
+wheels/
+pip-wheel-metadata/
+MANIFEST
+.pytest_cache/
+.mypy_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+.hypothesis/
+.venv/
+venv/
+env/
+ENV/
+.venv*/
+pypy/
+
+# ---- 打包产物 ----
+*.egg
+*.whl
+*.tar.gz
+*.zip
+
+# ---- 本工具运行时产物 ----
+# 本地结果库（绝不入库：含真实测试日志与路径）
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+testdeck-out/
+exports/
+*.jsonl
+
+# ---- 基准产物（只入生成器与真值，不入语料）----
+bench/out/
+bench/.tmp/
+bench/*.log
+data/synth/runs/
+data/synth/*.xml
+
+# ---- 环境与密钥 ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- IDE / OS ----
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- 本地笔记 ----
+_private/
+notes.local.md
+
+# ---- 日志 ----
+*.log
+logs/
