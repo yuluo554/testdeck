@@ -1,0 +1,15 @@
+{
+  "version": "1",
+  "slow": {
+    "slow_ms": 1000,
+    "regression_ratio": "1.2",
+    "regression_delta_ms": 200,
+    "waterfall_width": 40
+  },
+  "percentile": {
+    "method": "linear_interpolation",
+    "index_formula": "(n - 1) * p",
+    "p50": "0.50",
+    "p95": "0.95"
+  }
+}

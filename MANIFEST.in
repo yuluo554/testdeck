@@ -1,0 +1,10 @@
+include LICENSE
+include README.md
+include pyproject.toml
+include MANIFEST.in
+include AGENTS.md
+include data/README.md
+recursive-include src/testdeck/rules *.json
+recursive-include plan *.md
+recursive-include tools *.py
+recursive-include tests *.py

@@ -1,0 +1,21 @@
+{
+  "version": "1",
+  "window": {
+    "sparkline_runs": 20
+  },
+  "statuses": ["pass", "fail", "skip", "missing"],
+  "counted_statuses": ["pass", "fail"],
+  "flaky": {
+    "min_fail_rate": "0.05",
+    "max_fail_rate": "0.95",
+    "min_transitions": 3,
+    "min_runs_for_flaky": 2,
+    "fallback_label": "watch",
+    "labels": {
+      "broken": "fail_rate == 1",
+      "stable": "fail_rate == 0",
+      "flaky": "min_fail_rate <= fail_rate <= max_fail_rate and transitions >= min_transitions",
+      "watch": "otherwise"
+    }
+  }
+}

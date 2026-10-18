@@ -1,0 +1,16 @@
+{
+  "version": "1",
+  "view": {
+    "sparkline_runs": 20,
+    "min_width_single_column": 80,
+    "summary_fields": ["total", "fail", "skip", "flaky", "broken", "slow"],
+    "tree_sort": "fail_first_then_suite_order_then_lexical"
+  },
+  "export": {
+    "formats": ["md", "json"],
+    "fail_on": ["flaky", "new-failures", "regressions"],
+    "json_indent": 2,
+    "json_ensure_ascii": false,
+    "write_generated_at": false
+  }
+}

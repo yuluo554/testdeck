@@ -1,5 +1,7 @@
 # 00 · README 总览 — 10-19-testdeck（测试结果终端工作台）
 
+> 方法论：`ai-tool-project-sprint`（装订 2026-10-18）｜布局门：`py -3.12 tools/check-sprint-layout.py`｜续接对话第一件事 = 跑它
+
 - 性质：不参赛项目题 · 发布 GitHub **公开仓库** · 署名 yuluo554
 - 交付形态：**唯一形态 = 纯本地终端 TUI（Python + Textual）**；无服务器、无 GPU、无网络调用、无账号。
 - 定位宣言："一条命令扫本地 `**/junit*.xml`、`target/surefire-reports/`、`gh run download` 目录，把上千次 run 归一到本地 SQLite；三栏 TUI：左侧 suite→class→test 树、右侧 failure 原文与历史 sparkline，`F` 切 flaky 矩阵、`S` 切慢测试瀑布、`D` 做两次 run 的用例级 diff。CI 只给一次 run 的红绿，跨 run 的'谁在抖、谁在变慢、这次是不是新坏'无人本地归档。"
@@ -12,18 +14,20 @@
 |---|---|---|
 | plan/00-README总览.md | 本文档：索引 / 决策记录 / 承诺-证据台账 / 里程碑 | ✅ v1 |
 | plan/01-题目文档.md | 十段式题目定稿（含需求原话、检索快照、招牌动词表、风险与边界） | ✅ v1 |
-| plan/02-架构与技术选型.md | 分层架构、CLI 契约、退出码、数据库 schema、渲染与查询分离 | ⬜ 待 M0 落地 |
-| plan/03-模块详设.md | 五个模块的输入/输出/实现/降级/验收，编排与数据流 | ⬜ 待 M0 落地 |
-| plan/04-数据计划.md | 三框架真实产物清单、合成语料生成器、真值台账结构、基准口径 | ⬜ 待 M0 落地 |
-| plan/05-里程碑与发布.md | 逐里程碑 DoD、退出码退役表、发布流程、状态列 | ⬜ 待 M0 落地 |
-| plan/06-交付对标与决策.md | 提交材料对标、评分对标、形态自查表、待定决策、开放项 | ⬜ 待 M0 落地 |
+| plan/02-架构与技术选型.md | 分层架构、CLI 契约、退出码、数据库 schema、渲染与查询分离 | ✅ v1（M0） |
+| plan/03-模块详设.md | 五个模块的输入/输出/实现/降级/验收，编排与数据流 | ✅ v1（M0） |
+| plan/04-数据计划.md | 三框架真实产物清单、合成语料生成器、真值台账结构、基准口径 | ✅ v1（M0） |
+| plan/05-里程碑与发布.md | 逐里程碑 DoD、退出码退役表、发布流程、状态列 | ✅ v1（M0） |
+| plan/06-交付对标与决策.md | 提交材料对标、评分对标、形态自查表、待定决策、开放项 | ✅ v1（M0） |
+| plan/HANDOFF-M1.md | M1 续接交接单（六节） | ✅ M0 收尾落盘 |
 | plan/RELEASE-M6.md | 发布留档（tag 时点事实 / tag 后追加事实分栏） | ⬜ 待 M6 |
 | data/README.md | 依据查证记录 + 数据源可获取性 + 合成数据与数值口径纪律 | ✅ v1 |
 | data/synth/ | 合成 run 语料（生成器 + `expect.json` 真值） | ⬜ 待 M1 |
 | bench/ | 四套基准（ingest / flaky / slow / export）与统一入口 | ⬜ 待 M1–M5 |
 | docs/demo/demo.gif | TUI 实际运行录屏（三栏 + `F` + `S` + `D`） | ⬜ 待 M5 |
-| pyproject.toml / src/testdeck/ / tests/ | 可安装骨架：`testdeck selftest`、键位表、退出码语义、Pilot 测试待 M3 | ✅ v1（骨架）/ ⬜ 功能待 M2–M5 |
-| .gitignore / LICENSE | 运行时产物不入仓；MIT | ✅ v1 |
+| pyproject.toml / src/testdeck/ / tests/ | 可安装骨架：`testdeck selftest`、键位表、退出码语义、规则包、零网络/分层守门 | ✅ M0（功能待 M2–M5） |
+| tools/check-sprint-layout.py / AGENTS.md | 方法论装订：布局门 + 仓库锚点 | ✅ M0 |
+| .gitignore / .gitattributes / LICENSE | 运行时产物不入仓；行尾归一；MIT | ✅ M0 |
 
 ## 二、决策记录表
 
@@ -61,7 +65,7 @@
 | 两次 run 用例级 diff | 两次 run 的 occurrences | `D` 视图 | `tests/test_diff.py`：新增失败 / 修复 / 仍失败三类对账 | ⬜ 待 M3–M4 |
 | md / json 导出与 TUI 字段一致 | 同一 `report_model` | `testdeck export` | `bench/bench_export.py`：字段集合相等 + 两次导出逐字节一致 | ⬜ 待 M5 |
 | CI 门禁退出码（0/1/2/3） | 样例仓库 | `--fail-on` | `bench/bench_export.py`：三种 `--fail-on` 的预期退出码 | ⬜ 待 M5 |
-| 纯本地零上传 | 无网络调用的实现 | 全仓 | 源码扫描：无 HTTP 客户端调用；`selftest` 断言 | ⬜ 待 M0 |
+| 纯本地零上传 | 无网络调用的实现 | 全仓 | 源码扫描：无 HTTP 客户端调用；`selftest` 断言 | ✅ M0（AST 守门 + selftest 第 4 项） |
 | TUI 录屏 | `textual run --dev` | `docs/demo/demo.gif` | 文件存在性 + 人工复核三视图 | ⬜ 待 M5 |
 
 ## 四、提交材料实物表
@@ -86,17 +90,35 @@
 
 ## 六、里程碑初稿
 
-| 里程碑 | 内容 | DoD |
-|---|---|---|
-| **M0 骨架** | plan/02–06 定稿；`pyproject.toml` + `src/testdeck/` + `testdeck selftest`；退出码语义与键位表单点定义 | 干净环境 `pip install -e .` 后 `testdeck selftest` 退出 0；`check_topic.py` 无 FAIL |
-| **M1 数据先行** | 三框架真实产物落 `bench/fixtures/`；合成 200 run × 5k 用例语料生成器与 `expect.json` 真值；大文件基准 | 三份产物的用例数/失败数/skipped 与框架汇总逐项相等；生成器 `--check` 可重放；5 万用例单文件解析 < 2s |
-| **M2 解析落库** | `iterparse` 解析器、框架识别、四表 schema、upsert 与 ingest 摘要 | 重复 ingest 行数不变；坏文件记 `skipped:<reason>` 不静默；跨三框架的身份键一致 |
-| **M3 三栏视图** | Textual 三栏布局、失败优先树、summary、failure 原文与 sparkline、键位栏 | `Pilot` 键盘全流程读到 stack 首行；summary 与 SQL 逐项相等 |
-| **M4 flaky 与 diff** | 四态矩阵、四类分型、`D` 视图两次 run 用例级 diff | `bench/bench_flaky.py` 全绿；恒失败不进 flaky 的独立断言存在 |
-| **M5 慢测试与导出** | p50/p95、回归判定、瀑布条、`export --format md|json`、`--fail-on`、录屏 | `bench/bench_slow.py` + `bench/bench_export.py` 全绿；md 字段与 TUI 一致；`docs/demo/demo.gif` 入库 |
-| **M6 发布** | 脱敏、tag、GitHub Release、发布留档 | **git tag + GitHub Release（附产物）+ `plan/RELEASE-M6.md` 三件套**；`check_release.py` 无 FAIL |
+> 状态列是**四个副本之一**（另三处：`plan/05` §一、`plan/06` §二、`README.md` 状态表）。
+> 布局门逐里程碑比对，任一处不一致即红。✅ 的里程碑必须同时有 `plan/HANDOFF-M<k>.md`（M0 按声明豁免）。
 
-## 七、风险登记
+| 里程碑 | 内容 | DoD | 状态 |
+|---|---|---|---|
+| M0 | 方法论装订 + plan/00–06 + 可运行骨架（CLI 参数面 / 键位单点 / 退出码 / 规则包 / selftest） | 干净环境 `pip install -e ".[dev]"` 后 `testdeck selftest` 退出 0；`pytest` 全绿；布局门绿且 6 组变异全红 | ✅ 已完成（2026-10-18） |
+| M1 | 三框架真实产物落 `bench/fixtures/`；合成 200 run × 5k 用例语料生成器与 `expect.json` 真值；大文件基准 | 三份产物的用例数/失败数/skipped 与框架汇总逐项相等；生成器 `--check` 可重放；5 万用例单文件解析 < 2s | ⬜ 待 M1 |
+| M2 | `iterparse` 解析器、框架识别、四表 schema、upsert 与 ingest 摘要 | 重复 ingest 行数不变；坏文件记 `skipped:<reason>` 不静默；跨三框架的身份键一致；退出码 4 对 `ingest` 退役 | ⬜ 待 M2 |
+| M3 | Textual 三栏布局、失败优先树、summary、failure 原文与 sparkline、键位栏 | `Pilot` 键盘全流程读到 stack 首行；summary 与 SQL 逐项相等 | ⬜ 待 M3 |
+| M4 | 四态矩阵、四类分型、`D` 视图两次 run 用例级 diff | `bench/bench_flaky.py` 全绿；恒失败不进 flaky 的独立断言存在 | ⬜ 待 M4 |
+| M5 | p50/p95、回归判定、瀑布条、`export --format md\|json`、`--fail-on`、录屏 | `bench/bench_slow.py` + `bench/bench_export.py` 全绿；md 字段与 TUI 一致；`docs/demo/demo.gif` 入库 | ⬜ 待 M5 |
+| M6 | 脱敏、tag、GitHub Release、发布留档 | **git tag + GitHub Release（附产物）+ `plan/RELEASE-M6.md` 三件套**；`check_release.py` 无 FAIL | ⬜ 待 M6 |
+
+## 七、M0 实测证据（2026-10-18，命令 + 结果）
+
+> 只记**跑过的**；没跑的写在 `plan/05` §五「已知未验证项」，不在此表。
+
+| 检查 | 命令 | 结果 |
+|---|---|---|
+| 布局门 | `py -3.12 tools/check-sprint-layout.py` | 全绿；扫到 文档 10 / 交接单 1 / 状态副本 4 / 里程碑 7 |
+| 布局门变异 | `py -3.12 tools/verify-layout-gate.py` | 7 组全部按预期变红，还原后全绿 |
+| 全量测试 | `py -3.12 -m pytest -q` | 78 passed |
+| 自检 | `py -3.12 -m testdeck selftest` | exit 0；键位 11 条 / 退出码 0–4 / 规则包 3 份 / 源码 10 个 |
+| 干净安装 | 新 venv + `pip install -e ".[dev]"` | 裸 `testdeck` 与 `python -m testdeck` 两条通路均 exit 0；pytest 78 passed |
+| 打包面 | `pip wheel .` | wheel 内含 `testdeck/rules/*.json` |
+| 出题门 | `check_topic.py .`（只读） | 0 FAIL / 0 WARN / 25 PASS |
+| CI workflow | 本地 `yaml.safe_load` + 断言 | 1 job / 7 steps 解析通过（**未接远端，CI 待首推验证**） |
+
+## 八、风险登记
 
 | 风险 | 说明 | 缓解 |
 |---|---|---|

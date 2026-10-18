@@ -1,0 +1,17 @@
+# 源码归一；被字节断言的对象（fixture 快照、manifest 登记件）必须标 -text
+* text=auto eol=lf
+
+# 二进制
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.whl binary
+
+# 真实产物 fixture：字节形态本身可能被登记/对账，git 不得改写行尾
+bench/fixtures/** -text
+data/snapshots/** -text
