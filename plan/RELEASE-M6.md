@@ -168,7 +168,8 @@ branch push 的 CI 已在 §1.4 记录（tag 前）。本节只留 **tag push** 
 | 项 | 值（tag 后实测） |
 | --- | --- |
 | 附件名 | `testdeck-0.1.0.tar.gz`（setuptools 规范化名；309557 字节） |
-| sha256 | `740b87b71f6d2f3eff3e5f19731f41fd46e6874805b6ea5ef8e46517a35aa1f4`（**只写在 Release 正文**） |
+| sha256 | `740b87b71f6d2f3eff3e5f19731f41fd46e6874805b6ea5ef8e46517a35aa1f4` |
+| 哈希写在哪个"不动点" | **Release 正文**（主）+ **tag 后的追加栏（本节）**。两处都**不改包字节**：前者不碰仓库树，后者是 tag 之后的提交（tag 树不变 → 包字节不变）。**包内文档（tag 树里的 `plan/RELEASE-M6.md`）不含哈希**——实测 `git show v0.1.0:plan/RELEASE-M6.md` 对哈希命中数为 **0**；写进包内会改动包字节、哈希立刻失效 |
 | 真下载 → `sha256sum -c` | ✅ 中立目录 `D:` 盘外建目录下载 → `sha256sum -c` 输出 `testdeck-0.1.0.tar.gz: OK` |
 | 与本地构建 `cmp` | ✅ 逐字节一致 |
 | 解包树 vs `git archive v0.1.0` 解包树 | ✅ **104 个共有文件逐字节一致（0 差异）**；sdist 独有 8 项全是构建元数据（`PKG-INFO` / `setup.cfg` / `*.egg-info/*`），`git archive` 独有 8 项是不入包文件（`.gitignore` / `.gitattributes` / `.github/` / `.gitkeep` / `docs/demo/*`）——**这是 sdist 的正常形态，不是差异缺陷** |

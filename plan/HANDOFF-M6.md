@@ -68,10 +68,11 @@ tests/test_report_model.py         # build_report 形状扩为新键集
 plan/00,02,03,04,05,06 + README.md + data/README.md   # 状态与口径回写
 ```
 
-## 2. 下一棒待办（M6，按顺序）
+## 2. 下一棒待办（M6，按顺序）——**本轮已全部执行，结果见 §5b**
 
 > **M6 是本项目的收尾棒**：`plan/05` §三 写明"收尾棒（M6）也必须写 `HANDOFF-M6.md`"，
 > 所以本轮已把本文件落盘（它同时是 M6 的交接单与 M5 的收尾记录）。
+> **勾选与实测证据统一收在 §5b；下面保留原始待办清单作为"这一棒本该做什么"的记录。**
 
 1. **干净环境验证**：`git clone --no-local`（或 `git archive` 解包）→ 新 venv →
    按 `README.md` 逐条跑 → **逐条记退出码与语义**（两条通路：裸 `testdeck` 与
@@ -84,13 +85,16 @@ plan/00,02,03,04,05,06 + README.md + data/README.md   # 状态与口径回写
    → push main → 等 CI 绿。**判据是"远端 sha == 本地 sha"**，不是 push 退出码
    （`github.com` git 通道间歇 `Failed to connect`）。
 4. **tag + Release**：annotated tag `v0.1.0`；附件口径 = **手工源码包**
-   （`python -m build --sdist`），sha256 **只写进 Release 正文**（写进包内文档会立刻失效）。
+   （`python -m build --sdist`），sha256 写进 **Release 正文**（或 tag 后追加栏），
+   **不写进包内文档**（写进去会改包字节、哈希立刻失效）。
    tag 之后**不得再改代码面**（AGENTS.md 禁止条）。
+   **构建必须在 `git archive <tag>` 导出的干净目录里做**——本轮实测：在工作目录构建会
+   把未入库的 `bench/.tmp/*` 打进 sdist。
 5. **发布留档** `plan/RELEASE-M6.md`：§一 tag 前事实 / §二 tag 后追加事实 / §三 阶段 7
    覆盖对账表（逐条：**实现 / 不适用+理由 / 待首推**）。布局门会逐条核这张表
    （两栏小节 + 覆盖对账小节 + 三态行 ≥3），**M6 完成后它是硬门**。
 6. **发布物本体复核**（`plan/05` §四.6）：真下载到中立目录 → `sha256sum -c` →
-   解包树 vs `git archive <tag>` 解包树 `diff -r` → 在解包目录之外装并跑 `testdeck selftest`。
+   解包树 vs `git archive <tag>` 解包树比对 → 在解包目录之外装并跑 `testdeck selftest`。
 7. **CI 回填**：`plan/05` §五 的"CI 实跑未发生"与"跨版本行为差"两项在首推后回填**真实 run id**。
    **M5 已把四套基准全部上线**，`bench/run_all.py` 不带参数即可 exit 0——M6 应把
    `bench/run_all.py` 接进 CI 步骤（`plan/05` §五 的"bench 未接入 CI"一项的关闭条件）。
@@ -185,6 +189,26 @@ plan/00,02,03,04,05,06 + README.md + data/README.md   # 状态与口径回写
 - [x] 四处状态副本回写一致；`plan/HANDOFF-M6.md` 落盘；布局门绿；布局门变异 7 组全红
 - [x] 全量 `pytest` 绿（连跑多次确认不间歇）；`check_topic.py` 无 FAIL
 - [x] 本轮**未接远端** → 留档写"本地等价校验（CI 待首推验证）"，不得写"CI 绿"
+
+## 5b. DoD 逐项 checklist（M6 本轮收尾，2026-10-19）
+
+> 本节是本棒（M6）的收尾记录；上面 §5 是 M6 作为"下一棒交接单"时由 M5 写的清单。
+
+- [x] **干净环境验证**：`git archive HEAD` → 中立目录 → 新 venv → `pip install -e ".[dev]"` → README 8 条命令逐条 exit 0（两通路 `selftest` 均 0）
+- [x] 干净环境抓到并修掉 **2 处真实缺陷**：① `Pillow` 未进 dev extra（干净环境 6 例红）② 字体硬编码 `C:/Windows/Fonts/simsun.ttc`（ubuntu 会 `OSError`）；并新增安装面门 `test_dev_extras_cover_repo_script_imports`（扫描面扩到 `tools/bench/data`，变异验证必红）
+- [x] **脱敏四步**：源码常量 0 命中 / 文档 4 处均为抽象样例 / 产物 17 文件干净 / 提交元数据全部 noreply（含 tagger）
+- [x] **建仓首推**：`gh repo create yuluo554/testdeck --public`；判据取"远端 sha == 本地 sha"（逐次核对）
+- [x] **首推 CI 暴露并修掉 2 处本机不可见的缺陷**：py3.9 无 `sys.stdlib_module_names` 导致冻结名单漏 8 项；跨盘符断言写死 Windows 行为
+- [x] **CI 四矩阵全绿**：3.9/3.12 × ubuntu/windows；branch run 39209930484 + tag run 39209960716 均 success
+- [x] **annotated tag `v0.1.0` 双推**：本地/远端 tag 对象同为 `ebf97e6`、剥壳提交同为 `1406c7e`
+- [x] **GitHub Release**：附手工 sdist `testdeck-0.1.0.tar.gz`（309557 字节）
+- [x] **发布物本体复核**：真下载 → `sha256sum -c` OK → 与本地构建 `cmp` 一致 → 解包树 vs `git archive v0.1.0` 104 共有文件 0 差异 → 解包目录外正式安装后两通路 `selftest` 均 0 → 无 `.git` 树里布局门与四套基准均可跑
+- [x] 本体复核抓到 **1 处真实缺陷**：首版附件在**工作目录**构建，混入未入库的 `bench/.tmp/*`（316162 字节）→ 改为从 `git archive v0.1.0` **干净树**重建（309557 字节）并替换附件、更新正文哈希
+- [x] `plan/RELEASE-M6.md` 两栏（tag 前 / tag 后）+ 阶段 7 覆盖对账表；"待首推"归零
+- [x] tag 之后**只动文档面**（`git diff --name-only v0.1.0..HEAD` 仅 3 个 `plan/` 文件）
+- [x] 终局门：`check_release.py . --tag v0.1.0` → **0 FAIL / 1 WARN**（WARN = `POST_TAG`，如实登记"tag 后有回填提交"；硬指标 `POST_TAG_FILES` PASS）
+- [x] 布局门绿（`LAYOUT.RELEASE` 生效）+ 8 组变异全红；`pytest` **476 passed**；`bench/run_all.py` 43 项 exit 0；`check_topic.py` 0 FAIL
+- [x] **如实留档的未关闭项**：G6「真终端（字体/像素级/ConPTY）表现」仍**未验**（本机无真终端录制工具链），已登记为非发布前置的环境受限项
 
 ## 6. 关键命令速查
 
