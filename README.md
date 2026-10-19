@@ -14,15 +14,66 @@ CI 页面只回答"这一次 run 红不红"。跨 run 的问题——同一用�
 | 里程碑 | 内容 | 状态 |
 | --- | --- | --- |
 | M0 | 方法论装订 + plan/00–06 + 可运行骨架 | ✅ 已完成（2026-10-18） |
-| M1 | 三框架真实产物 + 合成语料 + 大文件基准 | ⬜ 待 M1 |
-| M2 | 解析落库（`iterparse` + 四表 + upsert） | ⬜ 待 M2 |
-| M3 | 三栏视图（失败优先树 / summary / failure 原文 / sparkline） | ⬜ 待 M3 |
-| M4 | flaky 矩阵与分型 + 两次 run diff | ⬜ 待 M4 |
-| M5 | 慢测试与回归 + 导出与门禁 + 录屏 | ⬜ 待 M5 |
+| M1 | 三框架真实产物（真跑）+ 合成语料 + 真值台账 + 大文件基准 | ✅ 已完成（2026-10-19） |
+| M2 | 解析落库（`iterparse` + 四表 + upsert + ingest 摘要） | ✅ 已完成（2026-10-19） |
+| M3 | 三栏视图（失败优先树 / summary / failure 原文 / sparkline） | ✅ 已完成（2026-10-19） |
+| M4 | flaky 矩阵与分型 + 两次 run diff | ✅ 已完成（2026-10-19） |
+| M5 | 慢测试与回归 + 导出与门禁 + 录屏 | ✅ 已完成（2026-10-19） |
 | M6 | 脱敏发布（tag + Release + 发布留档） | ⬜ 待 M6 |
 
-**M0 骨架期**：CLI 参数面、键位表、退出码语义、规则包与自检已落地；
-`ingest` / `tui` / `export` 尚未实现（返回 `4`）。后续里程碑见 `plan/05-里程碑与发布.md`。
+**M5 现状（最新）**：`S` 视图每条用例带 `slow.py` 的 **p50 / p95 / 回归三态标记**
+（`reg=yes/no/?`）与瀑布条；summary 六个字段全部有值（`slow` = 本 run 达到 `slow_ms` 的用例数）。
+`testdeck export --format md|json` 已实装，`--fail-on flaky|new-failures|regressions` 供 CI 门禁；
+**两次导出逐字节一致**（不写生成时刻、不含 `ingested_at` / 绝对路径）：
+
+```bash
+py -3.12 bench/bench_slow.py                 # p50/p95 + 回归边界对账（22 锚点 + 50 样本 + 全语料）
+py -3.12 bench/bench_export.py               # 导出字段一致 + 逐字节一致 + 门禁退出码
+py -3.12 bench/run_all.py                    # 四套件 43 项检查全绿，exit 0
+py -3.12 bench/run_all.py --probe            # 探活：逐套件注入全被报出（exit 0）
+py -3.12 -m testdeck export --db /tmp/demo.db --format md             # 导出 md 到 stdout
+py -3.12 -m testdeck export --db /tmp/demo.db --fail-on regressions   # 命中回归 → exit 1
+```
+
+`docs/demo/demo.gif` 是 TUI 的实际渲染录屏（8 帧 / 24.0s），由
+`py -3.12 tools/make-demo-gif.py` 一条命令可复跑；口径见 `docs/demo/README.md`。
+
+**M4**：`F` 矩阵每行带四类分型（`stable`/`flaky`/`broken`/`watch`）与 `flaky_score`，
+行序按 `flaky_score` 降序；`D` 视图把两次 run 的用例级 diff 分成**新增失败 / 修复 / 仍失败**
+三类（`diff.py`）。恒失败不进 flaky 是独立断言：
+
+```bash
+py -3.12 bench/bench_flaky.py                # 分型逐值对账（22 锚点 + 50 样本 + 全语料）
+```
+
+**M3**：`testdeck tui` 已实装——Textual 三栏（失败优先树 / summary / failure 原文 /
+sparkline），`F`/`S`/`D` 三个视图**接真实查询**。窄终端自动单栏、`NO_COLOR` 颜色退化：
+
+```bash
+py -3.12 -m testdeck ingest bench/fixtures/pytest/junit.xml \
+    bench/fixtures/gotestsum/gotestsum.xml bench/fixtures/playwright/playwright.xml \
+    --db /tmp/demo.db
+py -3.12 -m testdeck tui --db /tmp/demo.db      # 需真终端；纯键盘操作
+py -3.12 -m pytest tests/test_tui_pilot.py -q   # 无头键盘全流程（CI 可跑）
+```
+
+**M2**：`testdeck ingest` 已实装——流式 `iterparse` 解析、框架识别、四表
+`upsert`、摘要（机读行 + 人读行）都在跑，重复 ingest 四表行数不变：
+
+```bash
+py -3.12 -m testdeck ingest bench/fixtures/pytest/junit.xml \
+    bench/fixtures/gotestsum/gotestsum.xml bench/fixtures/playwright/playwright.xml \
+    --db /tmp/demo.db
+# ingest: files=3 runs=1 cases=18 occurrences=18 skipped=0 framework=gotestsum,playwright,pytest
+```
+
+```bash
+py -3.12 data/synth/gen_runs.py --check       # 真值台账位级一致（exit 0）
+```
+
+`bench/run_all.py` 不带参数时会跑全部**登记**套件（M5 起四套件全就绪，exit 0）。
+**退出码 4 已全面退役**：`ingest` 于 M2、`tui` 于 M3、`export` 于 M5——
+`cli.py` 里不再有返回 4 的分支（常量保留在 `exit_codes.py`，历史留档要能读）。
 
 ## 快速开始
 
@@ -48,12 +99,17 @@ py -3.12 -m pytest -q
 | 命令 | 说明 | 退出码 |
 | --- | --- | --- |
 | `testdeck selftest` | 自检键位 / 退出码 / 规则包 / 零网络 / 分层 | 0 / 1 |
-| `testdeck ingest <paths...>` | 扫描并归一 JUnit XML（M2 实装） | 0 / 2 / 3 |
-| `testdeck tui` | 打开三栏工作台（M3 实装） | 0 / 2 / 3 |
-| `testdeck export --format md\|json` | 导出报告，`--fail-on` 供 CI 门禁（M5 实装） | 0 / 1 / 2 / 3 |
+| `testdeck ingest <paths...>` | 扫描并归一 JUnit XML（`--glob` 可重复、`--dry-run` 零副作用、`--db` 覆盖并回显） | 0 / 2 / 3 |
+| `testdeck tui` | 三栏工作台；`j/k/g/G` 移动、`Enter` 展开/详情、`F`/`S`/`D` 切视图、`/` 搜索、`?` 帮助、`Esc`/`q` 返回/退出 | 0 / 2 / 3 |
+| `testdeck export --format md\|json` | 导出报告到 stdout；`--fail-on flaky\|new-failures\|regressions` 供 CI 门禁（命中 → 1） | 0 / 1 / 2 / 3 |
 
 退出码语义：`0` 达标 / `1` 门禁触发 / `2` 用法错误 / `3` 依赖缺失或库不可读。
-M0 期未实装命令返回 `4`，M2 起逐命令退役（见 `plan/05` §二）。
+骨架期的 `4`（尚未实现）**逐命令退役**：`ingest` 于 M2、`tui` 于 M3、`export` 于 M5
+全部退役——`cli.py` 里已无返回 4 的分支（常量保留，见 `plan/05` §二）。
+
+`tui` 的降级：终端宽度 < 80 列自动单栏（右栏改为按 `Enter` 进入的详情页）；
+`NO_COLOR` / `TERM=dumb` / 无真彩色 → 保留结构、颜色退化。库不存在 / 没有 run →
+退出码 3 并提示先跑 `testdeck ingest`。
 
 ## 方法论装订
 

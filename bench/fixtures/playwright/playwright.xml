@@ -1,0 +1,66 @@
+<testsuites id="" name="" tests="7" failures="1" skipped="1" errors="0" time="9.704967">
+<testsuite name="todo.spec.js" timestamp="2026-10-18T16:26:44.703Z" tests="7" failures="1" skipped="1" time="6.616" errors="0">
+<testcase name="renders the page title" classname="todo.spec.js" time="0.281">
+</testcase>
+<testcase name="adds an item to the list" classname="todo.spec.js" time="0.212">
+</testcase>
+<testcase name="updates the remaining counter" classname="todo.spec.js" time="0.251">
+</testcase>
+<testcase name="removes an item when its button is clicked" classname="todo.spec.js" time="0.227">
+</testcase>
+<testcase name="ignores blank submissions" classname="todo.spec.js" time="0.203">
+</testcase>
+<testcase name="deliberate failure fixture: counter text" classname="todo.spec.js" time="5.2">
+<failure message="todo.spec.js:77:1 deliberate failure fixture: counter text" type="FAILURE">
+<![CDATA[  todo.spec.js:77:1 › deliberate failure fixture: counter text ─────────────────────────────────────
+
+    Error: Timed out 5000ms waiting for expect(locator).toHaveText(expected)
+
+    Locator: locator('#count')
+    Expected string: "5 items left"
+    Received string: "1 item left"
+    Call log:
+      - expect.toHaveText with timeout 5000ms
+      - waiting for locator('#count')
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+      -   locator resolved to <p id="count">1 item left</p>
+      -   unexpected value "1 item left"
+
+
+      79 |   await page.fill('#new-todo', 'only one');
+      80 |   await page.click('#add');
+    > 81 |   await expect(page.locator('#count')).toHaveText('5 items left');
+         |                                        ^
+      82 | });
+      83 |
+      84 | test('not implemented yet: persisted storage', async ({ page }) => {
+
+        at bench\fixtures\playwright\tests\todo.spec.js:81:40
+]]>
+</failure>
+</testcase>
+<testcase name="not implemented yet: persisted storage" classname="todo.spec.js" time="0.242">
+<properties>
+<property name="skip" value="persistence is not implemented in the demo page">
+</property>
+</properties>
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+</testsuites>

@@ -1,0 +1,32 @@
+{
+  "framework": "pytest",
+  "produced_by": {
+    "tool": "pytest",
+    "tool_version": "8.4.2",
+    "python_version": "3.12.10",
+    "command": "python -m pytest test_demo.py --junitxml=junit.xml -p no:cacheprovider -q",
+    "source": "本机真实运行"
+  },
+  "totals": {
+    "tests": 6,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 1
+  },
+  "declared_in_xml": {
+    "tests": 6,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 1
+  },
+  "declared_source": "testsuite@pytest",
+  "suites": [
+    {
+      "tests": 6,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 1,
+      "name": "pytest"
+    }
+  ]
+}

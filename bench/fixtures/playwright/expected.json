@@ -1,0 +1,32 @@
+{
+  "framework": "playwright",
+  "produced_by": {
+    "tool": "@playwright/test",
+    "tool_version": "Version 1.48.2",
+    "node_version": "v24.15.0",
+    "command": "npx playwright test   # reporter 见 playwright.config.js",
+    "source": "本机真实运行"
+  },
+  "totals": {
+    "tests": 7,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 1
+  },
+  "declared_in_xml": {
+    "tests": 7,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 1
+  },
+  "declared_source": "testsuites@root",
+  "suites": [
+    {
+      "tests": 7,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 1,
+      "name": "todo.spec.js"
+    }
+  ]
+}

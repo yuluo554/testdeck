@@ -1,0 +1,32 @@
+{
+  "framework": "gotestsum",
+  "produced_by": {
+    "tool": "gotestsum",
+    "tool_version": "gotestsum version dev",
+    "go_version": "go version go1.23.4 windows/amd64",
+    "command": "gotestsum --junitfile gotestsum.xml --junitfile-testsuite-name short --junitfile-testcase-classname short ./...",
+    "source": "本机真实运行"
+  },
+  "totals": {
+    "tests": 5,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 1
+  },
+  "declared_in_xml": {
+    "tests": 5,
+    "failures": 1,
+    "errors": 0,
+    "skipped": null
+  },
+  "declared_source": "testsuites@root",
+  "suites": [
+    {
+      "tests": 5,
+      "failures": 1,
+      "errors": 0,
+      "skipped": 1,
+      "name": "demo-lib"
+    }
+  ]
+}

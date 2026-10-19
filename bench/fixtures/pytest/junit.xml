@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="1" tests="6" time="0.105" timestamp="2026-10-19T00:26:41.111995+08:00"><testcase classname="bench.fixtures.pytest.test_demo" name="test_add_returns_sum" time="0.001" /><testcase classname="bench.fixtures.pytest.test_demo" name="test_add_is_commutative" time="0.000" /><testcase classname="bench.fixtures.pytest.test_demo" name="test_div_guards_zero" time="0.000" /><testcase classname="bench.fixtures.pytest.test_demo" name="test_div_returns_quotient" time="0.000" /><testcase classname="bench.fixtures.pytest.test_demo" name="test_deliberate_failure_fixture" time="0.001"><failure message="AssertionError: deliberate failure fixture: want 8, got 7&#10;assert 7 == 8&#10; +  where 7 = _add(6, 1)">def test_deliberate_failure_fixture():
+        """故意写错的期望值：让产物里稳定带一条 `failure`，供三态对账使用。"""
+&gt;       assert _add(6, 1) == 8, "deliberate failure fixture: want 8, got 7"
+E       AssertionError: deliberate failure fixture: want 8, got 7
+E       assert 7 == 8
+E        +  where 7 = _add(6, 1)
+
+test_demo.py:41: AssertionError</failure></testcase><testcase classname="bench.fixtures.pytest.test_demo" name="test_not_implemented_yet_subtract" time="0.000"><skipped type="pytest.skip" message="not implemented yet: subtract()">bench\fixtures\pytest\test_demo.py:44: not implemented yet: subtract()</skipped></testcase></testsuite></testsuites>

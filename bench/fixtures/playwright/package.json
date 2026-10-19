@@ -1,0 +1,9 @@
+{
+  "name": "testdeck-fixture-playwright",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TestDeck D3 fixture：最小 Playwright 工程，产出 junit 形态的测试报告",
+  "devDependencies": {
+    "@playwright/test": "1.48.2"
+  }
+}

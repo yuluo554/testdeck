@@ -35,11 +35,27 @@ python tools/check-sprint-layout.py       # CI / Linux
 - Windows + Git Bash；`python` 是商店占位符，**用 `py`**；中文输出用 `py -X utf8`（2026-10-18）。
 - `py -0p`：**3.8.8-64 与 3.12-64 两条通道**；本项目 `requires-python >=3.9`，
   本机跑测试/构建一律用 **`py -3.12`**（2026-10-18）。
-- `node v24.15.0`、`npm 11.12.1` 在；`go` **不在**（2026-10-18）——Go fixture 用预置产物，
-  不依赖本机工具链。
-- `gh` 已登录 `yuluo554`（repo scope）；`github.com` git 通道间歇失败，判据是
-  "远端 sha == 本地 sha"，不是 push 退出码。
+- `node v24.15.0`、`npm 11.12.1` 在；**`go` 不在 PATH 上**（2026-10-19 复测）。
+  但 Go 工具链**可下载**（`https://dl.google.com/go/` 实测可达）——M1 就是这样拿到
+  `go1.23.4` 真跑 gotestsum fixture 的（见 `bench/fixtures/gotestsum/README.md`）。
+  → **不要**再把 D2/D3 说成"只能预置产物"：M1 已改为真跑产出。
+- Playwright 同理：npm 官方源不通，但 `registry.npmmirror.com` 与
+  `cdn.npmmirror.com/binaries/playwright` 可达（2026-10-19 实测）——M1 用它们装了
+  `@playwright/test` 1.48.2 + Chromium 130 并真跑产出 fixture。
+- 依赖镜像（2026-10-19 实测可达）：`pypi.tuna.tsinghua.edu.cn`、`goproxy.cn`、
+  `registry.npmmirror.com`。**官方源**（`proxy.golang.org`、`registry.npmjs.org`）
+  当时不通——装包失败先换镜像，再定性。
+- `gh` 已登录 `yuluo554`（repo scope）；远端**尚未创建**（`git remote -v` 为空）。
+- `github.com` git 通道间歇 `Failed to connect`；判据是"远端 sha == 本地 sha"，不是 push 退出码。
 - 本机注册表代理会污染 pip；装包失败先加 `NO_PROXY="*" no_proxy="*"` 与清华镜像。
+- pyc 偶发损坏 → 全程 `PYTHONDONTWRITEBYTECODE=1`；出怪错先清 `__pycache__` 再重试。
+- 本机 Git Bash 里 `grep`/`sed` 打印中文 UTF-8 会乱码（**只是显示问题**）：验收用 `py -3.12` 以
+  `encoding="utf-8"` 回读，或直接读文件。
+- **`/tmp` 在 Git Bash 与 Windows Python 眼里不是同一个目录**（实测坑）：Git Bash 的 `/tmp`
+  是 `C:\Users\<用户>\AppData\Local\Temp`，而 `py -3.12` 收到的 `/tmp/x` 会解析成 `D:\tmp\x`。
+  跨工具传路径时用仓库内相对路径，或写全 `C:/...`。
+- **`os.path.relpath` 跨盘符会抛 `ValueError`**（实测：仓库在 `D:\`、临时目录在 `C:\`）：
+  凡"展示用相对路径"的地方都要 try/except 回落原路径。
 - 任何"本机没有 X"的结论都带实测日期，下一棒先复测再引用。
 
 ## 禁止

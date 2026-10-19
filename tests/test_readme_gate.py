@@ -113,9 +113,24 @@ def _dev_import_names():
     return names
 
 
+def _runtime_import_names():
+    """运行时依赖（`[project].dependencies`）——测试要测它们，就得能 import 到。"""
+    deps = _pyproject()["project"]["dependencies"]
+    names = set()
+    for dep in deps:
+        base = re.split(r"[<>=!~;\s\[]", dep.strip())[0].lower()
+        names.add(DIST_TO_IMPORT.get(base, base).lower())
+    return names
+
+
 def test_dev_extras_cover_test_imports():
-    """测试套件真 import 的每个第三方库都必须在 dev extra 里（测试面 = 安装面）。"""
-    allowed = _dev_import_names()
+    """测试套件真 import 的每个第三方库都必须在**安装面**里。
+
+    安装面 = dev extra ∪ 运行时依赖：`pip install -e ".[dev]"` 会把两者一起装上，
+    所以"测试 import 了 textual"（M3 的 Pilot 测试）是合法的——它本来就随包安装。
+    这条门拦的是**第四方**：某个测试顺手 import 了一个没人登记、装包时不会出现的库。
+    """
+    allowed = _dev_import_names() | _runtime_import_names()
 
     imported = set()
     for path in sorted((ROOT / "tests").glob("*.py")):
@@ -128,7 +143,7 @@ def test_dev_extras_cover_test_imports():
     third_party = {name.lower() for name in imported - _stdlib_names() - {"testdeck"}}
     assert third_party, "扫描面为空：测试没有 import 任何第三方库"
     missing = third_party - allowed
-    assert missing == set(), "测试引入了 dev extra 之外的第三方包：%s" % sorted(missing)
+    assert missing == set(), "测试引入了安装面之外的第三方包：%s" % sorted(missing)
 
 
 def test_ci_workflow_parses_and_has_required_steps():

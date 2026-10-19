@@ -8,3 +8,9 @@ recursive-include src/testdeck/rules *.json
 recursive-include plan *.md
 recursive-include tools *.py
 recursive-include tests *.py
+# 基准与数据面：让 sdist 自足（干净环境里能重跑对账与真值复算）
+recursive-include bench *.py *.md *.xml *.json *.js *.go *.mod
+recursive-include data *.py *.json *.md
+# fixture 的 node_modules / 运行残留不进 sdist（体积 + 机器相关）
+prune bench/fixtures/playwright/node_modules
+prune bench/fixtures/playwright/test-results

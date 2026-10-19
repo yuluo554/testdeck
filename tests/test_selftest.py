@@ -17,16 +17,24 @@ def test_bindings_cover_all_keys():
         "search",
         "export",
         "help",
+        "back",
+        "quit",
     }
     assert set(keys.BINDINGS) == expected
     assert len(keys.KEYS) == len(keys.BINDINGS)
 
 
 def test_display_keys_match_bindings():
-    """展示表的键面与绑定表的键值必须是同一组（大小写与 Enter 别名归一）。"""
+    """展示表的键面与绑定表的键值必须是同一组（大小写与 Enter/Esc 别名归一）。"""
     display = {label for label, _ in keys.KEYS}
-    bound = {("Enter" if v == "enter" else v) for v in keys.BINDINGS.values()}
+    bound = {keys.display_label(v) for v in keys.BINDINGS.values()}
     assert display == bound
+
+
+def test_every_binding_has_a_display_description():
+    """每个动作都要有展示文案（Footer 与帮助层从 `keys.KEYS` 生成，缺一条就是空栏）。"""
+    missing = [action for action in keys.BINDINGS if not keys.description_for(action)]
+    assert missing == []
 
 
 def test_exit_codes_are_contiguous():
@@ -52,11 +60,26 @@ def test_unknown_subcommand_is_usage_error():
     assert main(["nope"]) == exit_codes.USAGE
 
 
-def test_not_ready_commands_return_4_in_m0():
-    """M0 期三条未实装命令返回 4；M2 起 ingest 必须退役（见 plan/05 §二）。"""
-    assert main(["ingest", "some-dir"]) == exit_codes.NOT_READY
-    assert main(["tui"]) == exit_codes.NOT_READY
-    assert main(["export"]) == exit_codes.NOT_READY
+def test_not_ready_retired_for_ingest_in_m2():
+    """原 `test_not_ready_commands_return_4_in_m0` 的**退役版**（`plan/05` §二）。
+
+    M2 实装 `ingest` 后，退出码 4 对它退役：入参不存在是**用法错误**（2），
+    不再是"尚未实现"（4）。完整的退役判据在 `tests/test_exit_codes.py`。
+    """
+    assert main(["ingest", "some-dir"]) == exit_codes.USAGE
+    assert main(["ingest", "some-dir"]) != exit_codes.NOT_READY
+
+
+def test_not_ready_retired_for_tui_in_m3():
+    """M3 实装 `tui` 后，退出码 4 对它退役（库不存在 = 依赖缺失 3，不是"尚未实现"）。"""
+    assert main(["tui", "--db", "definitely-not-here.db"]) == exit_codes.DEPENDENCY
+    assert main(["tui", "--db", "definitely-not-here.db"]) != exit_codes.NOT_READY
+
+
+def test_not_ready_retired_for_export_in_m5():
+    """M5 实装 `export` 后，退出码 4 对它退役（库不存在 = 依赖缺失 3）。"""
+    assert main(["export", "--db", "definitely-not-here.db"]) == exit_codes.DEPENDENCY
+    assert main(["export", "--db", "definitely-not-here.db"]) != exit_codes.NOT_READY
 
 
 def test_empty_db_argument_is_usage_error_not_default():

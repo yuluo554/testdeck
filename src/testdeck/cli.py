@@ -1,9 +1,14 @@
-"""CLI 入口（M0 骨架期）：参数面 + selftest；ingest/tui/export 在 M2–M5 实装。
+"""CLI 入口：参数面 + selftest + ingest / tui / export 编排。
 
 参数语义三条（写进测试，不靠约定）：
   1. **不用 ``or DEFAULT``**：``--db ""`` 是用法错误（exit 2），不得静默回落到默认库。
   2. **按 format 分派，未知格式显式拒绝**：argparse ``choices`` -> exit 2。
   3. **中间产物全落显式路径**：本模块不写任何隐藏缓存文件。
+
+退出码 4（``NOT_READY``）**逐命令退役**（`plan/05` §二）：``ingest`` 于 M2、
+``tui`` 于 M3、``export`` 于 **M5** 各自实装后都不再返回 4——**至此三条命令全部退役**，
+`cli.py` 里不再有 ``NOT_READY`` 分支（常量保留在 `exit_codes.py`，历史留档要能读）。
+退役判据见 `tests/test_exit_codes.py`。
 """
 
 from __future__ import annotations
@@ -13,7 +18,7 @@ import ast
 import os
 import sys
 
-from . import __version__, db, exit_codes, keys, paths, rules
+from . import __version__, exit_codes, export, ingest, keys, paths, rules
 
 PROG = "testdeck"
 
@@ -39,14 +44,34 @@ FORBIDDEN_NETWORK_MODULES = {
     "boto3",
 }
 
-#: 分层守门：这些模块不得被判定层 / 表示层 import
+#: 分层守门：这些模块不得被判定层 / 表示层 / 查询层 import
+#: （`plan/02` §一 的依赖方向单向向下：判定层不碰入口层与 Textual；
+#:   `queries.py` 不碰 `tui/`；`report_model.py` 与 `view.py` 不碰 Textual。）
 LAYER_RULES = {
     "flaky.py": {"testdeck.cli", "testdeck.tui", "testdeck.db", "textual"},
     "slow.py": {"testdeck.cli", "testdeck.tui", "testdeck.db", "textual"},
+    "diff.py": {"testdeck.cli", "testdeck.tui", "testdeck.db", "textual"},
+    # 编排层（`plan/02` §一）：可以往下依赖基础层（`db`）与判定层，
+    # 但不得碰入口层（`cli`）与 `tui/`。
+    "export.py": {"testdeck.cli", "testdeck.tui", "textual"},
     "report_model.py": {"testdeck.cli", "testdeck.tui", "textual"},
+    "queries.py": {"testdeck.cli", "testdeck.tui", "textual"},
     "model.py": {"testdeck.cli", "testdeck.tui", "testdeck.db", "textual"},
     "identity.py": {"testdeck.cli", "testdeck.tui", "testdeck.db", "textual"},
+    "view.py": {"testdeck.cli", "testdeck.tui", "textual"},
 }
+
+#: 分层守门的**另一半**（"必须 import"）：光有"不许 import 什么"是半条守门——
+#: 把 `app.py` 里对共用模型的引用删掉，界面照样能跑，但"md 字段与 TUI 一致"就
+#: 悄悄失效了（两处各自对齐）。这条要求让那次删除**可跑红**
+#: （变异验证见 `tests/test_layering.py::test_removing_report_model_reference_is_detected`）。
+REQUIRED_IMPORTS = {
+    "app.py": ("testdeck.report_model",),   # TUI 必须从共用模型取数（plan/02 §五）
+    "queries.py": ("testdeck.model",),      # 四态字形/状态枚举必须取自单点（plan/03 模块③）
+}
+
+#: 动态导入里能静态判定的形态：``importlib.import_module("requests")`` / ``__import__("socket")``
+DYNAMIC_IMPORT_FUNCS = ("import_module", "__import__")
 
 
 def _ensure_utf8_stdio():
@@ -79,7 +104,8 @@ def build_parser() -> argparse.ArgumentParser:
         dest="globs",
         action="append",
         default=None,
-        help="扫描模式，可重复（默认 **/junit*.xml）",
+        help="扫描模式，可重复；给定时替换默认值（默认 **/junit*.xml、"
+             "**/surefire-reports/*.xml、**/build/test-results/**/*.xml）",
     )
     p_ingest.add_argument(
         "--dry-run", action="store_true", help="只解析与统计，不写库（零副作用）"
@@ -120,6 +146,8 @@ def _check_keys(problems):
         "search",
         "export",
         "help",
+        "back",
+        "quit",
     }
     if set(keys.BINDINGS) != expected:
         problems.append(
@@ -128,9 +156,12 @@ def _check_keys(problems):
     if len(keys.KEYS) != len(keys.BINDINGS):
         problems.append("键位展示表与绑定表条目数不一致")
     display = {label for label, _ in keys.KEYS}
-    bound = {("Enter" if v == "enter" else v) for v in keys.BINDINGS.values()}
+    bound = {keys.display_label(v) for v in keys.BINDINGS.values()}
     if display != bound:
         problems.append("键位展示表与绑定表的键面不一致")
+    missing = [a for a in keys.BINDINGS if not keys.description_for(a)]
+    if missing:
+        problems.append("键位展示表缺这些动作的文案：%s" % sorted(missing))
 
 
 def _check_exit_codes(problems):
@@ -164,8 +195,8 @@ def _check_rules(problems):
         problems.append("导出格式列表为空")
 
 
-def _iter_src_files():
-    root = os.path.dirname(os.path.abspath(__file__))
+def _iter_src_files(root=None):
+    root = root or os.path.dirname(os.path.abspath(__file__))
     for dirpath, _dirnames, filenames in os.walk(root):
         for name in sorted(filenames):
             if name.endswith(".py"):
@@ -203,10 +234,47 @@ def _module_names(node):
     return names
 
 
-def _check_source_guards(problems):
-    """零网络 + 分层：AST 扫描 src/testdeck，不读 git、不依赖 CWD。"""
+def _imported_names(tree):
+    """一棵 AST 里所有 Import/ImportFrom 的候选模块名（含子模块名，见 `_module_names`）。"""
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            names |= _module_names(node)
+    return names
+
+
+def _dynamic_import_names(tree):
+    """``importlib.import_module("requests")`` / ``__import__("socket")`` 这类字符串参数。
+
+    AST 的 Import/ImportFrom 节点看不到它们；不做这一层就是"守门只防君子"
+    （`plan/02` §一 点名要求覆盖动态导入）。
+    """
+    names = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        label = func.attr if isinstance(func, ast.Attribute) else (
+            func.id if isinstance(func, ast.Name) else "")
+        if label not in DYNAMIC_IMPORT_FUNCS:
+            continue
+        for arg in node.args:
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                names.add(arg.value.split(".")[0])
+                names.add(arg.value)
+    return names
+
+
+def scan_network_problems(root=None):
+    """零网络守门：扫 ``root`` 下所有 .py，返回问题清单（空 = 干净）。
+
+    扫的是 **import 面**（含可静态判定的动态导入字符串），不是"有没有真的发请求"——
+    静态判据能覆盖的只有前者，这条边界写在 `tests/test_no_network.py` 的文件头，
+    不假装覆盖更多。
+    """
+    problems = []
     scanned = 0
-    for path in _iter_src_files():
+    for path in _iter_src_files(root):
         scanned += 1
         rel = os.path.basename(path)
         try:
@@ -215,20 +283,50 @@ def _check_source_guards(problems):
         except (OSError, SyntaxError) as exc:
             problems.append("%s 无法解析：%s" % (rel, exc))
             continue
-        forbidden = set()
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
-                forbidden |= _module_names(node)
-        net = forbidden & FORBIDDEN_NETWORK_MODULES
+        net = (_imported_names(tree) | _dynamic_import_names(tree)) & FORBIDDEN_NETWORK_MODULES
         if net:
             problems.append("%s 引入网络模块：%s（本项目零网络调用）" % (rel, sorted(net)))
-        banned = LAYER_RULES.get(rel, set())
-        hit = {name for name in forbidden if name in banned}
-        if hit:
-            problems.append("%s 违反分层（不应 import）：%s" % (rel, sorted(hit)))
     if scanned == 0:
         problems.append("源码扫描面为空：一个 .py 都没扫到（判据失效）")
-    return scanned
+    return problems
+
+
+def scan_layering_problems(root=None):
+    """分层守门：按 `LAYER_RULES` 报违规 + 按 `REQUIRED_IMPORTS` 报"引用被删"（空 = 干净）。"""
+    problems = []
+    scanned = 0
+    for path in _iter_src_files(root):
+        scanned += 1
+        rel = os.path.basename(path)
+        banned = LAYER_RULES.get(rel, set())
+        required = REQUIRED_IMPORTS.get(rel, ())
+        if not banned and not required:
+            continue
+        try:
+            with open(path, "r", encoding="utf-8") as fh:
+                tree = ast.parse(fh.read(), filename=path)
+        except (OSError, SyntaxError) as exc:
+            problems.append("%s 无法解析：%s" % (rel, exc))
+            continue
+        imported = _imported_names(tree) | _dynamic_import_names(tree)
+        hit = imported & banned
+        if hit:
+            problems.append("%s 违反分层（不应 import）：%s" % (rel, sorted(hit)))
+        for wanted in required:
+            if wanted not in imported:
+                problems.append(
+                    "%s 不再 import %s（共用模型/单点引用被删——"
+                    "\"两处各自对齐\"就是这么悄悄发生的）" % (rel, wanted))
+    if scanned == 0:
+        problems.append("源码扫描面为空：一个 .py 都没扫到（判据失效）")
+    return problems
+
+
+def _check_source_guards(problems):
+    """零网络 + 分层：AST 扫描 src/testdeck，不读 git、不依赖 CWD。"""
+    problems.extend(scan_network_problems())
+    problems.extend(scan_layering_problems())
+    return len(list(_iter_src_files()))
 
 
 def selftest() -> int:
@@ -264,14 +362,6 @@ def _resolve_db_or_usage(raw):
         return None, exit_codes.USAGE
 
 
-def _open_db_or_dependency(db_path):
-    try:
-        return db.connect(db_path)
-    except db.DbError as exc:
-        print("%s: %s" % (PROG, exc), file=sys.stderr)
-        return None
-
-
 def main(argv=None) -> int:
     _ensure_utf8_stdio()
     parser = build_parser()
@@ -284,17 +374,26 @@ def main(argv=None) -> int:
     if args.command == "selftest":
         return selftest()
 
-    if args.command in ("ingest", "tui", "export"):
-        # 参数面先验：--db 的合法性在"尚未实现"之前判——否则 M0 期测不到这条语义
-        _db_path, code = _resolve_db_or_usage(getattr(args, "db", None))
+    if args.command == "ingest":
+        # 参数面先验：--db 的合法性在编排之前判（``--db ""`` = 用法错误，不静默回落）
+        db_path, code = _resolve_db_or_usage(args.db)
         if code is not None:
             return code
-        print(
-            "%s：M0 骨架期尚未实现（见 plan/05 里程碑）；"
-            "先跑 `%s selftest` 验证安装面。" % (args.command, PROG),
-            file=sys.stderr,
-        )
-        return exit_codes.NOT_READY
+        return ingest.run(args.paths, db_path, globs=args.globs, dry_run=args.dry_run)
+
+    if args.command == "tui":
+        db_path, code = _resolve_db_or_usage(args.db)
+        if code is not None:
+            return code
+        from . import tui
+        return tui.run_tui(db_path, run_id=args.run)
+
+    if args.command == "export":
+        # M5 实装：模型 → md/json → stdout；`--fail-on` 命中即 1。
+        db_path, code = _resolve_db_or_usage(args.db)
+        if code is not None:
+            return code
+        return export.run(args.format, db_path, run_id=args.run, fail_on=args.fail_on)
 
     parser.print_help()
     return exit_codes.USAGE

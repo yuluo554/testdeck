@@ -55,6 +55,13 @@ bench/*.log
 data/synth/runs/
 data/synth/*.xml
 
+# ---- fixture 的工程依赖与运行残留（只入产物与源码）----
+# bench/fixtures/ 里的 XML / expected.json / 被测源码入仓；
+# node_modules 与工具运行残留不入仓（体积 + 机器相关）。
+bench/fixtures/**/node_modules/
+bench/fixtures/**/test-results/
+bench/fixtures/**/.playwright/
+
 # ---- 环境与密钥 ----
 .env
 .env.*

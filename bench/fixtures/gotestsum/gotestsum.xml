@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="5" failures="1" errors="0" time="1.379589">
+	<testsuite tests="5" failures="1" time="0.190000" name="demo-lib" timestamp="2026-10-19T00:26:41+08:00">
+		<properties>
+			<property name="go.version" value="go1.23.4 windows/amd64"></property>
+		</properties>
+		<testcase classname="demo-lib" name="TestDeliberateFailureFixture" time="0.000000">
+			<failure message="Failed" type="">=== RUN   TestDeliberateFailureFixture&#xA;    calc_test.go:32: deliberate failure fixture: want 7, got 6&#xA;--- FAIL: TestDeliberateFailureFixture (0.00s)&#xA;</failure>
+		</testcase>
+		<testcase classname="demo-lib" name="TestNotImplementedYetSubtract" time="0.000000">
+			<skipped message="=== RUN   TestNotImplementedYetSubtract&#xA;    calc_test.go:27: not implemented yet: Subtract&#xA;--- SKIP: TestNotImplementedYetSubtract (0.00s)&#xA;"></skipped>
+		</testcase>
+		<testcase classname="demo-lib" name="TestAdd" time="0.000000"></testcase>
+		<testcase classname="demo-lib" name="TestDivByZero" time="0.000000"></testcase>
+		<testcase classname="demo-lib" name="TestIsEven" time="0.000000"></testcase>
+	</testsuite>
+</testsuites>
