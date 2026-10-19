@@ -31,8 +31,8 @@
 | 检查 | 命令 | 结论 |
 | --- | --- | --- |
 | 布局门 | `py -3.12 tools/check-sprint-layout.py` | 全绿（文档 10 / 交接单 6 / 状态副本 4 / 里程碑 7） |
-| 布局门自身变异 | `py -3.12 tools/verify-layout-gate.py` | 7 组变异全按预期变红，还原后全绿 |
-| 全量测试 | `py -3.12 -m pytest` | **475 passed** |
+| 布局门自身变异 | `py -3.12 tools/verify-layout-gate.py` | **8 组**变异全按预期变红，还原后全绿 |
+| 全量测试 | `py -3.12 -m pytest` | **476 passed** |
 | 四套基准 | `py -3.12 bench/run_all.py --no-perf-gate` | 达标套件 4 / 未达标 0 / 未就绪 0（43 项检查），exit 0 |
 | 基准探活 | `py -3.12 bench/run_all.py --probe` | 逐套件注入全被报出，exit 0 |
 | 自检 | `py -3.12 -m testdeck selftest` | exit 0（键位 13 条 / 退出码 0–4 / 规则包 3 份 / 源码 22 个） |
@@ -41,7 +41,36 @@
 | 出题门 | `check_topic.py .`（只读） | 无 FAIL |
 | 发布终态门（tag 前） | `check_release.py . --tag v0.1.0` | 见 §三「待首推」行——tag 相关项此刻必然未成立 |
 
-### 1.3 干净环境验证（`plan/05` §四.1）
+### 1.4 首推 CI（branch push，tag 之前）
+
+`plan/05` §四.3 的"建仓 → push main → 等 CI 绿"发生在 tag **之前**，故记在本栏。
+
+| 项 | 值 |
+| --- | --- |
+| 远端 | `yuluo554/testdeck`（public，`gh repo create`，2026-10-19） |
+| push 流水（口径 = push 事件数） | 2 次 push main（首推 `4bd601d` + CI 修复 `c4c61f2`） |
+| run ①（首推 `4bd601d`） | id **39205759555**，push/main → **failure**（4 矩阵 3 红 1 绿） |
+| run ②（修复后 `c4c61f2`） | id **39206916398**，push/main → **success**（4 矩阵全绿） |
+| 矩阵 | ubuntu-latest / windows-latest × 3.9 / 3.12 = 4 矩阵，run ② 全 success |
+| 远端 sha == 本地 sha | ✅ 逐次核对（`git ls-remote origin refs/heads/main` == `git rev-parse main`） |
+
+**首跑失败照录不抹除**（DoD 纪律）。run ① 的失败面暴露两条**本机不可能发现**的缺陷：
+
+1. **py3.9 没有 `sys.stdlib_module_names`**：两处各写一份的冻结兜底名单都漏了 8 个真实
+   标准库模块（`__future__` / `codecs` / `fractions` / `asyncio` / `builtins` / `importlib` /
+   `struct` / `random`），于是 py3.9 两个矩阵把标准库 import 误判成"未登记的第三方依赖"。
+   修法：名单**单点**落到 `tests/conftest.py::stdlib_module_names()`（并入
+   `builtin_module_names` + 穷尽式冻结名单），以 `stdlib_names` fixture 暴露，两个测试文件同源取用。
+2. **跨盘符断言写死了 Windows 行为**：`test_relative_to_root_cross_drive_does_not_crash`
+   断言"等于绝对路径"，而 Linux 上 `os.path.relpath` 不抛错、返回相对路径 → ubuntu 两个矩阵红。
+   修法：该条只断言"不崩 + 正斜杠"（平台无关）；"回落绝对路径"由 monkeypatch 令
+   `relpath` 抛 `ValueError` 的新用例跨平台钉住。
+
+> **推送数 = run 数对账**：2 次 push main ↔ 2 条 run（run ① / run ②），逐条 `event/headBranch/
+> headSha/conclusion` 可核（`gh run list --workflow ci.yml --json …`）。权威 = push 流水，
+> 不用 Events API（事件面高频丢弃，只作旁证）。
+
+### 1.5 干净环境验证（`plan/05` §四.1）
 
 通路：`git archive HEAD` 解包到**中立目录**（仓库外）→ 新 venv →
 `pip install -e ".[dev]"`（`NO_PROXY="*"` + 清华镜像）→ 按 `README.md` 逐条跑。
@@ -50,12 +79,15 @@
 | --- | --- | --- | --- |
 | 1 | 裸 `testdeck selftest` | 0 | 键位 13 条 / 退出码 0–4 / 规则包 3 份 / 源码 22 个 |
 | 2 | `python -m testdeck selftest` | 0 | 同上（**两条通路都验**，只验一条会漏安装面缺陷） |
-| 3 | `python -m pytest` | 0 | **475 passed** |
+| 3 | `python -m pytest` | 0 | **476 passed** |
 | 4 | `python tools/check-sprint-layout.py` | 0 | 全绿 |
 | 5 | `python -m testdeck ingest <三份产物> --db <临时库>` | 0 | `files=3 runs=1 cases=18 occurrences=18 skipped=0` |
 | 6 | `python -m testdeck export --format md` | 0 | md 报告到 stdout（列序 = JSON 键序 = 字段声明序） |
 | 7 | `python -m testdeck export --fail-on regressions` | 0 | 无回归命中 → 0（命中 → 1） |
 | 8 | `python bench/run_all.py` | 0 | 四套件 43 项检查全绿 |
+
+> 上表在本轮**两遍**跑：第一遍（干净环境首次）抓到 Pillow / 字体两缺陷并修复；
+> 修后在**最终 HEAD** 上重跑，8 条命令全 exit 0。
 
 **本轮干净环境验证抓到并修掉的两处真实缺陷**（这条通路存在的意义）：
 
@@ -115,12 +147,13 @@ macOS Menlo），都不可用退回 `ImageFont.load_default(size)`；新增门
 
 ### 2.2 CI 实跑（`plan/05` §五 两项的关闭条件）
 
+branch push 的 CI 已在 §1.4 记录（tag 前）。本节只留 **tag push** 的 run（tag 之后才产生）。
+
 | 项 | 值（tag 后回填） |
 | --- | --- |
-| 首推 branch run id | （tag 后回填） |
 | tag push run id | （tag 后回填） |
-| 矩阵结果 | ubuntu/windows × 3.9/3.12 四矩阵（tag 后回填） |
-| 跨版本行为差 | （tag 后回填）——本机只有 3.8/3.12 两条通道，3.9–3.12 待 CI |
+| tag push run 矩阵结果 | （tag 后回填）——须同样 4 矩阵全绿（tag 树与 branch 树同源） |
+| 跨版本行为差 | **已关闭（2026-10-19）**：CI 四矩阵（3.9/3.12 × ubuntu/windows）run ② 全 success；本机仅 3.8/3.12，3.9 行为差已在 CI 实测（首跑暴露并修复 py3.9 标准库名单与跨盘符断言两处） |
 
 ### 2.3 附件本体复核（`plan/05` §四.6）
 
@@ -155,8 +188,8 @@ macOS Menlo），都不可用退回 `ImageFont.load_default(size)`；新增门
 | C. tag 之后只允许文档面提交 | 实现 | 纪律已写进本文件 §二 引言；tag 后的回填提交只动 `plan/` + `README.md`（`POST_TAG_FILES` 判它） |
 | C. 随包 README 的状态行不承载"发布到哪一步" | 实现 | `README.md` 状态行写"版本 + 能力"（M6 = 脱敏发布 ✅），"是否已发布/CI 是否绿"交给 Release 页与 `plan/`——随包读者没有 Release 页，故不让他靠 README 判断发布状态 |
 | C. annotated tag 两端一致 = 对象哈希一致 | 待首推 | tag 尚未创建；口径 = 只对齐 `object.sha` 会留 message/tagger/时区漂移 |
-| D. push 数 = run 数对账 | 待首推 | 无远端时不可核对；口径 = push 事件数，权威 = `gh run list --json event,headBranch,headSha,conclusion` 逐条配对 |
-| D. tag push 与 branch push 各一条 run（同 sha 两条合法） | 待首推 | 首推后成立 |
+| D. push 数 = run 数对账（branch 面） | 实现 | §1.4：2 次 push main ↔ 2 条 run（39205759555 failure / 39206916398 success），逐条 `event/headBranch/headSha/conclusion` 可核 |
+| D. tag push 与 branch push 各一条 run（同 sha 两条合法） | 待首推 | branch push 两条 run 已在 §1.4；**tag push run 待 tag 后回填 §2.2** |
 | D. 每条已交付命令都要有一条离线 CI 冒烟 | 实现 | CI 步骤：布局门 + 裸 `testdeck selftest` + `python -m testdeck selftest` + `pytest` + `bench/run_all.py --no-perf-gate` + `bench/run_all.py --probe`；`ingest`/`export` 由 `pytest` 与 bench 套件覆盖 |
 | D. 推送前先本地 `yaml.safe_load` 解析 workflow 并断言 job/step 数 | 实现 | `tests/test_readme_gate.py::test_ci_workflow_parses_and_has_required_steps`（含 M6 新增的 bench 两条断言） |
 | D. bench 接入 CI（`plan/05` §五 关闭条件） | 实现 | CI 加 `bench/run_all.py --no-perf-gate` + `--probe` 两步；本机等价校验 43 项检查 exit 0 |
@@ -166,6 +199,8 @@ macOS Menlo），都不可用退回 `ImageFont.load_default(size)`；新增门
 | E. `gh` 是原生程序，`/tmp/...` 路径它不认 | 实现 | 本轮 `gh` 相关命令一律用仓库内相对路径或 `C:/...`（`AGENTS.md` 环境坑条） |
 | E. 门对"被检查对象不存在"要报 FAIL 不崩 | 实现 | 布局门 `run_guarded` 把异常本身记 FAIL；`check_release.py` 对缺 tag 报 `TAG_EXISTS` FAIL 并继续 |
 
-**"待首推"项汇总（3 项，全部依赖远端 / tag / 附件，首推后回填 §二）**：
-附件与 tag 树同源、附件 sha256 真下载复核、CI 实跑对账（push 数 = run 数、四矩阵结果、跨版本行为差）。
-这三项在无远端的此刻**在结构上不可能成立**，故如实标"待首推"，**不写成已完成**。
+**"待首推"项汇总（4 项，全部依赖 tag / 附件，tag 与 Release 之后回填 §二）**：
+① 附件与 tag 树逐字节同源；② 附件 sha256 真下载复核；③ annotated tag 两端对象哈希一致；
+④ tag push run 与 tag 后追加提交的 push 数对账。
+这四项在 **tag 尚未创建的此刻**在结构上不可能成立，故如实标"待首推"，**不写成已完成**。
+（branch 面的 CI 与 push 数对账已在 §1.4 完成，不在本汇总内。）
