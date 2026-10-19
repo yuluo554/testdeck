@@ -67,10 +67,42 @@ SETTLE_FRAMES = 3
 #: **粗体不用 `simsunb.ttf`**——实测那是 SimSun-ExtB（只有罕见扩展区汉字），
 #: 常用汉字会渲染成豆腐块。改为对同一份 SimSun 加一圈 `stroke_width` 描边来模拟粗体，
 #: 既保住字形，又不引入第二种字体度量。
-FONT_REGULAR = "C:/Windows/Fonts/simsun.ttc"
+#:
+#: **跨平台回退（M6 补）**：SimSun 是 Windows 自带字体，Linux/macOS 上不存在。
+#: 硬编码一个 Windows 路径会让 `rasterize()` 在 CI 的 ubuntu 上直接抛 `OSError`
+#: （实测：`ImageFont.truetype("C:/...")` → `cannot open resource`）。故按候选表
+#: 逐个探测，都不可用时退回 Pillow 自带的 `load_default(size)`（Pillow ≥ 10 支持
+#: 字号参数，能按 `fill` 上色）。字体度量随之变化，但这只影响**演示动图**的观感，
+#: 不影响任何判定口径。
+FONT_CANDIDATES = (
+    "C:/Windows/Fonts/simsun.ttc",  # Windows（SimSun：ASCII/CJK 恰 2:1）
+    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",  # Debian/Ubuntu
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/System/Library/Fonts/Menlo.ttc",  # macOS
+    "/Library/Fonts/Arial Unicode.ttf",
+)
 FONT_SIZE = 20
 #: 模拟粗体的描边宽度（像素；0 = 不描边）
 BOLD_STROKE = 1
+
+
+def resolve_font(size=FONT_SIZE):
+    """返回一个可用的 `ImageFont`：先按候选表探测真字体，都不可用则退回内置默认字体。
+
+    回退到 `load_default(size)` 而不是 `load_default()`：后者字号极小且**不上色**
+    （实测：`fill` 参数被忽略，前景色不出现在像素里），会让"文字被画上"的断言假红。
+    `load_default(size=…)` 是 Pillow 10.1 才有的签名，更早版本退回首版默认字体。
+    """
+    for path in FONT_CANDIDATES:
+        if os.path.isfile(path):
+            try:
+                return ImageFont.truetype(path, size)
+            except OSError:
+                continue
+    try:
+        return ImageFont.load_default(size)
+    except TypeError:  # Pillow < 10.1 的 load_default 不接受字号
+        return ImageFont.load_default()
 
 
 # ── SVG 解析（只认 Rich 的 `rich-terminal` 形态）────────────────────────
@@ -168,7 +200,7 @@ def rasterize(svg_text, scale=1):
             continue
         draw.rectangle([x, y, x + w - 1, y + h - 1], fill=color)
 
-    regular = ImageFont.truetype(FONT_REGULAR, FONT_SIZE)
+    regular = resolve_font(FONT_SIZE)
     for x, y, fill, is_bold, content in texts:
         try:
             color = _rgb(fill)

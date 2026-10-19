@@ -146,6 +146,55 @@ def test_dev_extras_cover_test_imports():
     assert missing == set(), "测试引入了安装面之外的第三方包：%s" % sorted(missing)
 
 
+#: 被测试**按路径动态装载**的仓库脚本根（`conftest.load_script` / `_load_maker`）。
+#: 这些文件的第三方 import 不会出现在 `tests/*.py` 的顶层 AST 里——正是本门在
+#: M6 干净环境验证时漏掉 `tools/make-demo-gif.py` 的 `PIL`（Pillow 未登记 dev extra）
+#: 的原因。扫面扩到这三处，同一条纪律才覆盖"测试真正会执行到的代码"。
+REPO_SCRIPT_ROOTS = ("tools", "bench", "data")
+#: 被装载脚本所在目录里**属于被测项目**的子目录（fixture 工程依赖，不是本仓代码）。
+REPO_SCRIPT_SKIP_DIRS = {"node_modules", "__pycache__", ".tmp", ".playwright",
+                         "test-results"}
+
+
+def _repo_script_import_names():
+    """扫 `tools/` `bench/` `data/` 下 `.py` 的第三方 import（去掉 stdlib 与本仓包）。"""
+    imported = set()
+    for root_name in REPO_SCRIPT_ROOTS:
+        root = ROOT / root_name
+        if not root.is_dir():
+            continue
+        for path in root.rglob("*.py"):
+            if any(part in REPO_SCRIPT_SKIP_DIRS for part in path.parts):
+                continue
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except SyntaxError:
+                continue
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    imported |= {a.name.split(".")[0] for a in node.names}
+                elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
+                    imported.add(node.module.split(".")[0])
+    return {name.lower() for name in imported - _stdlib_names() - {"testdeck"}}
+
+
+def test_dev_extras_cover_repo_script_imports():
+    """测试**动态装载**的仓库脚本（`tools/` `bench/` `data/`）的第三方 import 也必须在安装面内。
+
+    M6 干净环境验证实录：`tests/test_demo_gif.py` 按路径装载 `tools/make-demo-gif.py`，
+    而后者 `from PIL import …`——`PIL`（Pillow）当时没进 dev extra。旧门只扫
+    `tests/*.py` 的顶层 AST，看不见被装载脚本的 import，于是本地（已装 Pillow）全绿、
+    干净环境 6 例红。这条门把扫描面扩到那三处，让"测试跑得到的代码"与"安装面"对齐。
+    """
+    allowed = _dev_import_names() | _runtime_import_names()
+    third_party = _repo_script_import_names()
+    assert third_party, "扫描面为空：tools/bench/data 下没有任何第三方 import"
+    missing = third_party - allowed
+    assert missing == set(), (
+        "被测试装载的仓库脚本引入了安装面之外的第三方包：%s" % sorted(missing)
+    )
+
+
 def test_ci_workflow_parses_and_has_required_steps():
     """workflow YAML 先本地解析并断言步骤数：step name 含裸 `: ` 会让 GitHub 不建 job。"""
     workflow = yaml.safe_load(_read(".github/workflows/ci.yml"))
