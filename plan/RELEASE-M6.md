@@ -39,7 +39,7 @@
 | 真值台账位级一致 | `py -3.12 data/synth/gen_runs.py --check` | PASS（436804 字节） |
 | 录屏 | `py -3.12 tools/make-demo-gif.py --check` | `docs/demo/demo.gif`：8 帧 / 24.0s（≤30s）/ 478380 字节 |
 | 出题门 | `check_topic.py .`（只读） | 无 FAIL |
-| 发布终态门（tag 前） | `check_release.py . --tag v0.1.0` | 见 §三「待首推」行——tag 相关项此刻必然未成立 |
+| 发布终态门（tag 前） | `check_release.py . --tag v0.1.0 --no-gh` | 当时 1 FAIL（`REMOTE_TAG`：tag 未推）——**预期中的红**；推 tag 后线上复跑 **0 FAIL / 0 WARN / 23 PASS** |
 
 ### 1.4 首推 CI（branch push，tag 之前）
 
@@ -140,33 +140,47 @@ macOS Menlo），都不可用退回 `ImageFont.load_default(size)`；新增门
 
 ### 2.1 仓库与远端同源
 
-| 项 | 值（tag 后回填） |
+| 项 | 值（tag 后实测） |
 | --- | --- |
-| 本地 tag 对象 | `v0.1.0`（annotated） |
-| tag 指向的提交 | （tag 后回填） |
-| 远端 tag sha == 本地 | （tag 后回填）——判据是"远端 sha == 本地 sha"，**不是 push 退出码** |
-| 远端 main sha == 本地 main | （tag 后回填） |
+| 本地 tag 对象 | `ebf97e6babbf562dd060ab48cfdd333aec272a80`（annotated tag） |
+| tag 指向的提交 | `1406c7ef29f6eff5fa626983527972bf74045724` |
+| 远端 tag 对象 sha | `ebf97e6babbf562dd060ab48cfdd333aec272a80`（**与本地对象哈希一致**） |
+| 远端剥壳提交 sha | `1406c7ef29f6eff5fa626983527972bf74045724`（**与本地一致**） |
+| 远端 main sha == 本地 main | ✅ `1406c7e`（`git ls-remote origin refs/heads/main` == `git rev-parse main`） |
+
+> 判据是"远端 sha == 本地 sha"，**不是 push 退出码**（`github.com` git 通道本机会间歇 `Failed to connect`）。
+> annotated tag 只对齐 `object.sha` 会留 message/tagger/时区漂移，故此处同时核到**对象哈希**与**剥壳提交**两个层面。
 
 ### 2.2 CI 实跑（`plan/05` §五 两项的关闭条件）
 
 branch push 的 CI 已在 §1.4 记录（tag 前）。本节只留 **tag push** 的 run（tag 之后才产生）。
 
-| 项 | 值（tag 后回填） |
+| 项 | 值（tag 后实测） |
 | --- | --- |
-| tag push run id | （tag 后回填） |
-| tag push run 矩阵结果 | （tag 后回填）——须同样 4 矩阵全绿（tag 树与 branch 树同源） |
-| 跨版本行为差 | **已关闭（2026-10-19）**：CI 四矩阵（3.9/3.12 × ubuntu/windows）run ② 全 success；本机仅 3.8/3.12，3.9 行为差已在 CI 实测（首跑暴露并修复 py3.9 标准库名单与跨盘符断言两处） |
+| tag push run id | **39209960716**（event=push，headBranch=`v0.1.0`，headSha=`1406c7e`）→ **success** |
+| 同 sha 的 branch run | **39209930484**（event=push，headBranch=`main`，headSha=`1406c7e`）→ **success**（同 sha 两条合法） |
+| tag push 矩阵结果 | 4 矩阵全 success：py3.9/ubuntu、py3.9/windows、py3.12/ubuntu、py3.12/windows |
+| 跨版本行为差 | **已关闭（2026-10-19）**：CI 四矩阵（3.9/3.12 × ubuntu/windows）实跑全绿；3.9 行为差在首跑暴露并修复两处（py3.9 标准库名单、跨盘符断言），见 §1.4 |
+| push 数 = run 数 | 截至本节：5 次 push（4 branch + 1 tag）↔ 6 条 run（`1406c7e` 上 branch/tag 各一条）——**规则 = 1 push 事件 1 条 run，同 sha 两条合法**，逐条 `gh run list --json event,headBranch,headSha,conclusion` 可核 |
 
 ### 2.3 附件本体复核（`plan/05` §四.6）
 
-| 项 | 值（tag 后回填） |
+| 项 | 值（tag 后实测） |
 | --- | --- |
-| 附件名 | `testdeck-0.1.0.tar.gz` |
-| sha256 | （tag 后回填，**只写进 Release 正文**——写进包内文档会立刻失效） |
-| 真下载 → `sha256sum -c` | （tag 后回填） |
-| 解包树 vs `git archive v0.1.0` 解包树 `diff -r` | （tag 后回填） |
-| 解包目录之外装 + `testdeck selftest` | （tag 后回填） |
-| 无 `.git` 树里入仓工具可跑 | （tag 后回填） |
+| 附件名 | `testdeck-0.1.0.tar.gz`（setuptools 规范化名；309557 字节） |
+| sha256 | `740b87b71f6d2f3eff3e5f19731f41fd46e6874805b6ea5ef8e46517a35aa1f4`（**只写在 Release 正文**） |
+| 真下载 → `sha256sum -c` | ✅ 中立目录 `D:` 盘外建目录下载 → `sha256sum -c` 输出 `testdeck-0.1.0.tar.gz: OK` |
+| 与本地构建 `cmp` | ✅ 逐字节一致 |
+| 解包树 vs `git archive v0.1.0` 解包树 | ✅ **104 个共有文件逐字节一致（0 差异）**；sdist 独有 8 项全是构建元数据（`PKG-INFO` / `setup.cfg` / `*.egg-info/*`），`git archive` 独有 8 项是不入包文件（`.gitignore` / `.gitattributes` / `.github/` / `.gitkeep` / `docs/demo/*`）——**这是 sdist 的正常形态，不是差异缺陷** |
+| 解包目录之外装 + `testdeck selftest` | ✅ 另行建 venv2、在**解包树之外**的 cwd 上正式安装（非 editable）；裸 `testdeck selftest` 与 `python -m testdeck selftest` 两通路均 exit 0（规则包 3 份随包到位） |
+| 无 `.git` 树里入仓工具可跑 | ✅ 在该解包树（无 `.git`）里跑 `tools/check-sprint-layout.py` 全绿、`bench/run_all.py --no-perf-gate` 43 项 exit 0 |
+
+> **本体复核抓到并修掉的一处真实缺陷**：首版附件是在**工作目录**里构建的，而工作目录残留着
+> 本机临时扫描脚本 `bench/.tmp/*`（未入库、不在 tag 树）——`MANIFEST.in` 的
+> `recursive-include bench *.py *.json *.xml` 把它们一并打进了 sdist（316162 字节）。
+> 处置：**从 `git archive v0.1.0` 的干净树重建**（309557 字节），删除旧附件、上传新附件、
+> 把新 sha256 写进 Release 正文。**这正是"本体复核"存在的理由**——本地构建绿不等于发布物干净。
+> 教训已记：构建必须在**从 tag 树导出的干净目录**里做，不在工作目录里做。
 
 ## 三、阶段 7 覆盖对账表
 
@@ -178,20 +192,20 @@ branch push 的 CI 已在 §1.4 记录（tag 前）。本节只留 **tag push** 
 | --- | --- | --- |
 | A. 干净环境验证（中立目录 + 新 venv + README 逐条） | 实现 | §1.3：`git archive` 解包到仓库外 → 新 venv → 8 条命令逐条记退出码，全 0；抓到并修掉 Pillow/字体两缺陷 |
 | A. 入仓工具在无 `.git` 树里也要能跑 | 实现 | §1.3 通路就是无 `.git` 树（`git archive` 解包，无 `.git`）：`tools/check-sprint-layout.py`、`bench/run_all.py` 都在该树里跑绿 |
-| A. 附件与 tag 树逐字节同源（`diff -r`） | 待首推 | 附件尚未产出（tag 后）；复核方法已写进 §2.3 |
+| A. 附件与 tag 树逐字节同源（`diff -r`） | 实现 | §2.3：从 `git archive v0.1.0` 干净树重建附件；解包后 **104 个共有文件逐字节一致（0 差异）**；独有项均为构建元数据/不入包文件 |
 | A. 源码包自足（`MANIFEST.in` 白名单覆盖数据目录） | 实现 | 干净环境实测：sdist 含 `plan/`（14 文件）、`bench/`、`data/synth/`、`rules/*.json`，**不含** `node_modules`（`prune` 生效）；解包目录之外可装可跑 |
-| A. README 提到的附件名必须真在 Release 里 | 待首推 | 附件名 `testdeck-0.1.0.tar.gz` 已按 setuptools 规范化写进 `plan/05` 与 §2.3；"真在 Release 里"待首推后核对 |
+| A. README 提到的附件名必须真在 Release 里 | 实现 | `gh release view v0.1.0 --json assets` → `testdeck-0.1.0.tar.gz`（309557 字节）；`DECLARED_ASSETS` PASS（来源=gh） |
 | A. 对外附带样例产物在中立目录生成 | 不适用 | 本仓无"对外附带样例产物"（`docs/demo/demo.gif` 是随仓演示素材，不是 Release 附件；`bench/.tmp/demo.db` 不入仓） |
 | B. 附件口径 = 手工源码包（非 GitHub 自动 Source code 包） | 实现 | D8：`python -m build --sdist`；干净环境实测产出 `testdeck-0.1.0.tar.gz`（自动 Source code 包的 sha256 本地复算不出来，故不用） |
 | B. 附件 sha256 写进"不动点"位置 | 实现 | 口径落 `plan/05` §四.4 + §2.3：**只写 Release 正文**；包内文档只写复验方法、不写哈希 |
-| B. 复核三步：真下载 → `sha256sum -c` → 解包树 `diff -r` | 待首推 | 附件与远端 tag 都还不存在；方法已定，§2.3 留槽位 |
+| B. 复核三步：真下载 → `sha256sum -c` → 解包树 `diff -r` | 实现 | §2.3：中立目录 `gh release download` → `sha256sum -c` 输出 `OK` → 共有文件逐字节比对 0 差异，且与本地构建 `cmp` 一致 |
 | C. tag 树内含发布留档本体（本文件） | 实现 | 本文件 `plan/RELEASE-M6.md` 在打 tag **之前**写好并进 tag 树；`check_release.py` 的 `TAG_TREE_RELEASE_DOC` / `TAG_BEFORE_RELEASE_DOC` 判它 |
 | C. DoD 打勾只能在事实落地后 | 实现 | §一 只写已成立事实，§二 的槽位如实标"tag 后回填"；不在 tag 树里打未落地的勾 |
 | C. tag 之后只允许文档面提交 | 实现 | 纪律已写进本文件 §二 引言；tag 后的回填提交只动 `plan/` + `README.md`（`POST_TAG_FILES` 判它） |
 | C. 随包 README 的状态行不承载"发布到哪一步" | 实现 | `README.md` 状态行写"版本 + 能力"（M6 = 脱敏发布 ✅），"是否已发布/CI 是否绿"交给 Release 页与 `plan/`——随包读者没有 Release 页，故不让他靠 README 判断发布状态 |
-| C. annotated tag 两端一致 = 对象哈希一致 | 待首推 | tag 尚未创建；口径 = 只对齐 `object.sha` 会留 message/tagger/时区漂移 |
+| C. annotated tag 两端一致 = 对象哈希一致 | 实现 | §2.1：本地/远端 tag 对象同为 `ebf97e6`，剥壳提交同为 `1406c7e`（对象层与提交层都核过） |
 | D. push 数 = run 数对账（branch 面） | 实现 | §1.4：2 次 push main ↔ 2 条 run（39205759555 failure / 39206916398 success），逐条 `event/headBranch/headSha/conclusion` 可核 |
-| D. tag push 与 branch push 各一条 run（同 sha 两条合法） | 待首推 | branch push 两条 run 已在 §1.4；**tag push run 待 tag 后回填 §2.2** |
+| D. tag push 与 branch push 各一条 run（同 sha 两条合法） | 实现 | §2.2：`1406c7e` 上 branch run 39209930484 与 tag run 39209960716 **两条均 success**（4 矩阵全绿） |
 | D. 每条已交付命令都要有一条离线 CI 冒烟 | 实现 | CI 步骤：布局门 + 裸 `testdeck selftest` + `python -m testdeck selftest` + `pytest` + `bench/run_all.py --no-perf-gate` + `bench/run_all.py --probe`；`ingest`/`export` 由 `pytest` 与 bench 套件覆盖 |
 | D. 推送前先本地 `yaml.safe_load` 解析 workflow 并断言 job/step 数 | 实现 | `tests/test_readme_gate.py::test_ci_workflow_parses_and_has_required_steps`（含 M6 新增的 bench 两条断言） |
 | D. bench 接入 CI（`plan/05` §五 关闭条件） | 实现 | CI 加 `bench/run_all.py --no-perf-gate` + `--probe` 两步；本机等价校验 43 项检查 exit 0 |
@@ -201,8 +215,13 @@ branch push 的 CI 已在 §1.4 记录（tag 前）。本节只留 **tag push** 
 | E. `gh` 是原生程序，`/tmp/...` 路径它不认 | 实现 | 本轮 `gh` 相关命令一律用仓库内相对路径或 `C:/...`（`AGENTS.md` 环境坑条） |
 | E. 门对"被检查对象不存在"要报 FAIL 不崩 | 实现 | 布局门 `run_guarded` 把异常本身记 FAIL；`check_release.py` 对缺 tag 报 `TAG_EXISTS` FAIL 并继续 |
 
-**"待首推"项汇总（4 项，全部依赖 tag / 附件，tag 与 Release 之后回填 §二）**：
-① 附件与 tag 树逐字节同源；② 附件 sha256 真下载复核；③ annotated tag 两端对象哈希一致；
-④ tag push run 与 tag 后追加提交的 push 数对账。
-这四项在 **tag 尚未创建的此刻**在结构上不可能成立，故如实标"待首推"，**不写成已完成**。
-（branch 面的 CI 与 push 数对账已在 §1.4 完成，不在本汇总内。）
+**"待首推"项汇总：0 项（2026-10-19 全部闭合）**。
+
+发布时点的 4 项待办已逐项落地，证据在 §二：
+① 附件与 tag 树逐字节同源 → §2.3（104 共有文件 0 差异）；
+② 附件 sha256 真下载复核 → §2.3（`sha256sum -c` OK）；
+③ annotated tag 两端对象哈希一致 → §2.1（`ebf97e6` / 剥壳 `1406c7e`）；
+④ tag push run 与 push 数对账 → §2.2（tag run 39209960716 success）。
+
+**本表唯一保留的非"实现"态是 `SIG_DELIVERY`（SKIP）**——那是 `check_release.py` 自身对
+"标题未含可机械核对能力名词"的跳过判定，不是本项目的缺口。

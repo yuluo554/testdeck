@@ -295,7 +295,7 @@
 
 | 检查 | 命令 | 结果 |
 | --- | --- | --- |
-| 布局门 | `py -3.12 tools/check-sprint-layout.py` | 全绿；`LAYOUT.RELEASE` 生效（两栏 + 覆盖对账 + 25 三态行） |
+| 布局门 | `py -3.12 tools/check-sprint-layout.py` | 全绿；`LAYOUT.RELEASE` 生效（两栏 + 覆盖对账 + 三态行 ≥3） |
 | 布局门自身变异 | `py -3.12 tools/verify-layout-gate.py` | **8 组**变异全按预期变红（新增 M8 验发布门两栏），还原后全绿 |
 | 全量测试 | `py -3.12 -m pytest` | **476 passed**（M5 为 474；+1 = 仓库脚本安装面门，+1 = 跨盘符回落用例） |
 | 干净环境验证 | `git archive HEAD` → 中立目录 → 新 venv → `pip install -e ".[dev]"` → README 逐条 | **8 条命令全 exit 0**；两通路（裸 `testdeck` / `python -m testdeck`）`selftest` 均 0；`pytest` 全绿 |
