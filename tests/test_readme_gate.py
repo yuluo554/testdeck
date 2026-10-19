@@ -206,3 +206,9 @@ def test_ci_workflow_parses_and_has_required_steps():
     assert any("layout gate" in n for n in names), "CI 缺布局门步骤"
     assert any("Selftest (console script" in n for n in names), "CI 缺裸 console-script 冒烟"
     assert any("pytest" in (step.get("run") or "") for step in steps)
+    # M6：四套基准接入 CI（plan/05 §五「bench 未接入 CI」的关闭条件）
+    runs = [step.get("run") or "" for step in steps]
+    assert any("bench/run_all.py" in r and "--probe" not in r for r in runs), \
+        "CI 缺 bench 套件步骤（run_all.py 不带 --probe）"
+    assert any("bench/run_all.py" in r and "--probe" in r for r in runs), \
+        "CI 缺 bench 探活步骤（run_all.py --probe）"

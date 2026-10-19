@@ -41,3 +41,9 @@ jobs:
 
       - name: Tests
         run: python -m pytest -q
+
+      - name: Bench suites (four suites, README form)
+        run: python bench/run_all.py --no-perf-gate
+
+      - name: Bench probe (each suite must report its injected defect)
+        run: python bench/run_all.py --probe
