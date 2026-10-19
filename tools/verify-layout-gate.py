@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""布局门自身的变异验证（7 组）：故意弄坏被测对象，门必须变红；还原后必须全绿。
+"""布局门自身的变异验证（8 组）：故意弄坏被测对象，门必须变红；还原后必须全绿。
 
 用法：
     py -3.12 tools/verify-layout-gate.py
@@ -133,6 +133,19 @@ def _m6():
 @case("M7 删下一棒交接单 HANDOFF-M1", "LAYOUT.HANDOFFS")
 def _m7():
     return ("delete", "plan/HANDOFF-M1.md")
+
+
+@case("M8 发布留档的『tag 后』栏标题去标记（两栏变一栏）", "LAYOUT.RELEASE")
+def _m8():
+    # LAYOUT.RELEASE 在 M6 完成后才生效（发布门）。它要求留档同时有
+    # "§一 …tag 前" 与 "§二 …tag 后" 两栏小节——把后一栏标题里的 "tag 后" 去掉，
+    # 两栏判据应立刻变红（这是发布门自身可证伪的证据）。
+    return (
+        "edit",
+        "plan/RELEASE-M6.md",
+        "## 二、tag 之后追加事实（tag 后回填）",
+        "## 二、后续追加事实（回填）",
+    )
 
 
 def apply_variant(kind, *args):

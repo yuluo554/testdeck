@@ -5,8 +5,8 @@
 - 性质：不参赛项目题 · 发布 GitHub **公开仓库** · 署名 yuluo554
 - 交付形态：**唯一形态 = 纯本地终端 TUI（Python + Textual）**；无服务器、无 GPU、无网络调用、无账号。
 - 定位宣言："一条命令扫本地 `**/junit*.xml`、`target/surefire-reports/`、`gh run download` 目录，把上千次 run 归一到本地 SQLite；三栏 TUI：左侧 suite→class→test 树、右侧 failure 原文与历史 sparkline，`F` 切 flaky 矩阵、`S` 切慢测试瀑布、`D` 做两次 run 的用例级 diff。CI 只给一次 run 的红绿，跨 run 的'谁在抖、谁在变慢、这次是不是新坏'无人本地归档。"
-- 版本史：v1 2026-10-17（题面定稿，查证基准日 2026-10-17；GitHub 检索实测窗口 2026-10-18 10:33–10:50 UTC）。
-- 下一棒：**sprint M6（脱敏、tag、GitHub Release、发布留档）**——建仓首推、`v0.1.0` annotated tag、Release 附件（手工 sdist）、`plan/RELEASE-M6.md` 两栏留档 + 阶段 7 覆盖对账表、`check_release.py` 无 FAIL。
+- 版本史：v1 2026-10-17（题面定稿，查证基准日 2026-10-17；GitHub 检索实测窗口 2026-10-18 10:33–10:50 UTC）；v2 2026-10-19（M6 发布：`v0.1.0` tag + Release + 发布留档，M0–M6 全部 ✅）。
+- 发布状态：**已发布** `v0.1.0`（GitHub Release 附手工源码包 `testdeck-0.1.0.tar.gz`）；发布留档 `plan/RELEASE-M6.md`（tag 前事实 / tag 后追加事实两栏 + 阶段 7 覆盖对账表）。
 
 ## 一、文档索引表
 
@@ -25,7 +25,7 @@
 | plan/HANDOFF-M4.md | M4 续接交接单（六节） | ✅ M3 收尾落盘 |
 | plan/HANDOFF-M5.md | M5 续接交接单（六节） | ✅ M4 收尾落盘 |
 | plan/HANDOFF-M6.md | M6 续接交接单（六节） | ✅ M5 收尾落盘 |
-| plan/RELEASE-M6.md | 发布留档（tag 时点事实 / tag 后追加事实分栏） | ⬜ 待 M6 |
+| plan/RELEASE-M6.md | 发布留档（tag 前事实 / tag 后追加事实分栏 + 阶段 7 覆盖对账表） | ✅ M6（tag 树内） |
 | data/README.md | 依据查证记录 + 数据源可获取性 + 合成数据与数值口径纪律 | ✅ v5（M5 补分位数/回归/导出三处落地记录） |
 | data/synth/gen_runs.py + expect.json | D5 合成语料生成器 + D7 真值台账（22 锚点 + 50 样本 + 全语料汇总） | ✅ M1（M4 重生成：零计数 fail_rate 由 "0" 改为无定义） |
 | bench/fixtures/{pytest,gotestsum,playwright}/ | D1–D3 三框架真实产物（各带 `expected.json` + `README.md` 来源说明） | ✅ M1 |
@@ -131,7 +131,7 @@
 | M3 | Textual 三栏布局、失败优先树、summary、failure 原文与 sparkline、键位栏 | `Pilot` 键盘全流程读到 stack 首行；summary 与 SQL 逐项相等 | ✅ 已完成（2026-10-19） |
 | M4 | 四态矩阵、四类分型、`D` 视图两次 run 用例级 diff | `bench/bench_flaky.py` 全绿；恒失败不进 flaky 的独立断言存在 | ✅ 已完成（2026-10-19） |
 | M5 | p50/p95、回归判定、瀑布条、`export --format md\|json`、`--fail-on`、录屏 | `bench/bench_slow.py` + `bench/bench_export.py` 全绿；md 字段与 TUI 一致；`docs/demo/demo.gif` 入库 | ✅ 已完成（2026-10-19） |
-| M6 | 脱敏、tag、GitHub Release、发布留档 | **git tag + GitHub Release（附产物）+ `plan/RELEASE-M6.md` 三件套**；`check_release.py` 无 FAIL | ⬜ 待 M6 |
+| M6 | 脱敏、tag、GitHub Release、发布留档 | **git tag + GitHub Release（附产物）+ `plan/RELEASE-M6.md` 三件套**；`check_release.py` 无 FAIL | ✅ 已完成（2026-10-19） |
 
 ## 七、实测证据（按里程碑分表，命令 + 结果）
 
@@ -275,7 +275,7 @@
 | 退出码 4 全面退役 | `py -3.12 -m pytest tests/test_exit_codes.py` | `export` 任何入参形态不返回 4；`cli.py` 里**已无返回 4 的分支**（AST 断言） |
 | 分层守门（含 export.py） | `py -3.12 -m pytest tests/test_layering.py` | 9 条 LAYER_RULES 逐条可命中（注入表与 `LAYER_RULES` 同步断言） |
 | `S` 视图接判定 | `tests/test_tui_pilot.py` + `tests/test_queries.py` | Pilot 断言面板带 `p50=`/`p95=`/`reg=`；两次 run 真库上 1000→1500ms 判回归 |
-| 录屏 | `py -3.12 tools/make-demo-gif.py --check` | `docs/demo/demo.gif`：8 帧 / **24.0s**（上限 30s）/ 432976 字节；`tests/test_demo_gif.py` 9 例 |
+| 录屏 | `py -3.12 tools/make-demo-gif.py --check` | `docs/demo/demo.gif`：8 帧 / **24.0s**（上限 30s）/ 478380 字节；`tests/test_demo_gif.py` 9 例 |
 | 自检 | `py -3.12 -m testdeck selftest` | exit 0（键位 13 条 / 退出码 0–4 / 规则包 3 份 / 源码 22 个） |
 | 真值台账仍位级一致 | `py -3.12 data/synth/gen_runs.py --check` | PASS（436804 字节） |
 | 出题门 | `check_topic.py .`（只读） | 无 FAIL |
@@ -287,6 +287,33 @@
 > 的 SVG）经 Pillow 栅格化拼成，不是真终端字节流录制——本机 Windows 无 `pty`/`termios`，
 > `winpty` 非 tty 下断言失败，`asciinema`/`agg`/`pyte` 都不在且本轮不下载。真终端
 > （字体/像素级/ConPTY）表现仍**未验**，G6 未关闭。
+>
+> **本节 byte 数修正（M6）**：M5 原记 `demo.gif` 为 432976 字节，实测入库文件是 **478380**。
+> 属"同源数字失真"（阶段 7 出口门第 9 项），M6 按实测改写；文件本身未变。
+
+### 7.7 M6（2026-10-19，脱敏发布：干净环境 + tag + Release + 留档）
+
+| 检查 | 命令 | 结果 |
+| --- | --- | --- |
+| 布局门 | `py -3.12 tools/check-sprint-layout.py` | 全绿；`LAYOUT.RELEASE` 生效（两栏 + 覆盖对账 + 25 三态行） |
+| 布局门自身变异 | `py -3.12 tools/verify-layout-gate.py` | **8 组**变异全按预期变红（新增 M8 验发布门两栏），还原后全绿 |
+| 全量测试 | `py -3.12 -m pytest` | **475 passed**（M5 为 474；+1 = 新增的仓库脚本安装面门） |
+| 干净环境验证 | `git archive HEAD` → 中立目录 → 新 venv → `pip install -e ".[dev]"` → README 逐条 | **8 条命令全 exit 0**；两通路（裸 `testdeck` / `python -m testdeck`）`selftest` 均 0；`pytest` **475 passed** |
+| 干净环境抓到的缺陷 | 同上 | **2 处**：① `Pillow` 未进 dev extra（干净环境 6 例红）② 字体硬编码 `C:/Windows/Fonts/simsun.ttc`（ubuntu CI 会 `OSError`）——均已修，并补安装面门 |
+| 脱敏·源码常量面 | 扫 `src/**` 机器路径/真域名/凭据/`hostname=` | 25 文件 **0 命中** |
+| 脱敏·文档面 | `py -3.12 -X utf8` 以 `encoding="utf-8"` 回读 | 4 处命中均为**抽象样例**（`/tmp` 跨工具说明 + 合成测试输入），非机器标识 |
+| 脱敏·产物面 | `py -3.12 bench/fixtures/scan_leaks.py` | 17 文件**干净** |
+| 脱敏·提交元数据面 | `git log --format='%ae%n%ce'` 去重 | 唯一邮箱 `282769740+yuluo554@users.noreply.github.com`（**全部 noreply**） |
+| 四套基准（CI 形态） | `py -3.12 bench/run_all.py --no-perf-gate` | 四套件 43 项检查全绿，exit 0（已接进 CI 步骤） |
+| 探活 | `py -3.12 bench/run_all.py --probe` | 逐套件注入全被报出，exit 0 |
+| 录屏复核 | `py -3.12 tools/make-demo-gif.py --check` | 8 帧 / 24.0s / **478380 字节**；重生成逐字节一致 |
+| 出题门 | `check_topic.py .`（只读） | 无 FAIL |
+| 发布终态门（tag 前） | `check_release.py . --tag v0.1.0` | tag/附件/远端项如实标"待首推"（见 `plan/RELEASE-M6.md` §三） |
+
+> **发布留档** `plan/RELEASE-M6.md`：§一 tag 前事实 / §二 tag 后追加事实（回填槽位）/
+> §三 阶段 7 覆盖对账表（25 行三态）。tag 之后的实测值（run id / 附件 sha256 / 真下载复核）
+> 在 **§二** 回填——它们**在结构上不可能**出现在 tag 树里。
+
 
 ## 八、风险登记
 | 风险 | 说明 | 缓解 |

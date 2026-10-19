@@ -19,9 +19,13 @@ CI 页面只回答"这一次 run 红不红"。跨 run 的问题——同一用�
 | M3 | 三栏视图（失败优先树 / summary / failure 原文 / sparkline） | ✅ 已完成（2026-10-19） |
 | M4 | flaky 矩阵与分型 + 两次 run diff | ✅ 已完成（2026-10-19） |
 | M5 | 慢测试与回归 + 导出与门禁 + 录屏 | ✅ 已完成（2026-10-19） |
-| M6 | 脱敏发布（tag + Release + 发布留档） | ⬜ 待 M6 |
+| M6 | 脱敏发布（tag + Release + 发布留档） | ✅ 已完成（2026-10-19） |
 
-**M5 现状（最新）**：`S` 视图每条用例带 `slow.py` 的 **p50 / p95 / 回归三态标记**
+**M6（发布态）**：`v0.1.0` 已打 annotated tag 并发布 GitHub Release（附手工源码包
+`testdeck-0.1.0.tar.gz`）；发布留档在 `plan/RELEASE-M6.md`（tag 前事实 / tag 后追加事实两栏 +
+阶段 7 覆盖对账表）。随包读者请以 **Release 页**为准判断发布状态——本 README 只写"版本 + 能力"。
+
+**M5 现状（最新功能）**：`S` 视图每条用例带 `slow.py` 的 **p50 / p95 / 回归三态标记**
 （`reg=yes/no/?`）与瀑布条；summary 六个字段全部有值（`slow` = 本 run 达到 `slow_ms` 的用例数）。
 `testdeck export --format md|json` 已实装，`--fail-on flaky|new-failures|regressions` 供 CI 门禁；
 **两次导出逐字节一致**（不写生成时刻、不含 `ingested_at` / 绝对路径）：
