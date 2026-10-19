@@ -48,10 +48,12 @@
 | 项 | 值 |
 | --- | --- |
 | 远端 | `yuluo554/testdeck`（public，`gh repo create`，2026-10-19） |
-| push 流水（口径 = push 事件数） | 2 次 push main（首推 `4bd601d` + CI 修复 `c4c61f2`） |
+| push 口径 | **push 事件数**（不是提交数）；权威 = `gh run list --workflow ci.yml --json event,headBranch,headSha,conclusion` 逐条配对，不用 Events API（事件面高频丢弃，只作旁证） |
+| 对账规则 | **1 次 push = 1 条 run**（branch push 与 tag push 各计一次；同 sha 的 branch run 与 tag run 两条合法）。**规则不变，数字不必追着跑**——下表只记 tag 前三次 push 的实测，之后新增的 run 按同一规则计量，终态证据收在 §二 |
 | run ①（首推 `4bd601d`） | id **39205759555**，push/main → **failure**（4 矩阵 3 红 1 绿） |
-| run ②（修复后 `c4c61f2`） | id **39206916398**，push/main → **success**（4 矩阵全绿） |
-| 矩阵 | ubuntu-latest / windows-latest × 3.9 / 3.12 = 4 矩阵，run ② 全 success |
+| run ②（CI 修复 `c4c61f2`） | id **39206916398**，push/main → **success**（4 矩阵全绿） |
+| run ③（回填 CI 事实 `524525d`） | id **39207422066**，push/main → **success**（4 矩阵全绿） |
+| 矩阵 | ubuntu-latest / windows-latest × 3.9 / 3.12 = 4 矩阵，run ②/③ 全 success |
 | 远端 sha == 本地 sha | ✅ 逐次核对（`git ls-remote origin refs/heads/main` == `git rev-parse main`） |
 
 **首跑失败照录不抹除**（DoD 纪律）。run ① 的失败面暴露两条**本机不可能发现**的缺陷：
