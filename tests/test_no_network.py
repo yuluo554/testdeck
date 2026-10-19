@@ -12,7 +12,6 @@
 
 import ast
 import shutil
-import sys
 from pathlib import Path
 
 from testdeck import cli
@@ -92,23 +91,18 @@ def test_empty_scan_face_is_a_problem(tmp_path):
     assert cli.scan_network_problems(str(empty)) == ["源码扫描面为空：一个 .py 都没扫到（判据失效）"]
 
 
-def test_whitelist_keeps_unregistered_third_party_out():
+def test_whitelist_keeps_unregistered_third_party_out(stdlib_names):
     """src/ 里的每个顶层导入要么是标准库、要么是本包、要么在白名单里。
 
     白名单是本项目"允许的第三方"的**唯一登记处**（与 pyproject 由
     `test_readme_gate.py` 交叉核对）。它也是动态导入的兜底：动态导入一个
     未登记依赖，会在安装面/白名单面暴露。
+
+    标准库名单从 `conftest.stdlib_names` fixture 取（**单点**）：3.9 没有
+    `sys.stdlib_module_names`，冻结名单漏项曾在 CI 的 py3.9 矩阵把标准库 import
+    误判成第三方依赖（首推实录）——名单只此一份，`test_readme_gate.py` 同源。
     """
-    stdlib = set(getattr(sys, "stdlib_module_names", ())) or set()
-    if not stdlib:  # 3.10 才有 stdlib_module_names；3.9 用冻结名单兜底
-        stdlib = {
-            "abc", "argparse", "ast", "collections", "contextlib", "csv", "dataclasses",
-            "datetime", "decimal", "enum", "errno", "fnmatch", "functools", "glob",
-            "hashlib", "io", "itertools", "json", "logging", "math", "os", "pathlib",
-            "platform", "re", "shutil", "sqlite3", "statistics", "string", "subprocess",
-            "sys", "tempfile", "textwrap", "time", "tomllib", "typing", "unicodedata",
-            "unittest", "warnings", "xml", "zipfile",
-        }
+    stdlib = stdlib_names
     imported = set()
     for path in sorted(SRC.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))

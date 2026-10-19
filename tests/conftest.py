@@ -10,6 +10,7 @@
 
 import importlib.util
 import os
+import sys
 
 import pytest
 
@@ -39,6 +40,53 @@ def load_script(rel_path, module_name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def stdlib_module_names():
+    """标准库顶层模块名集合，**跨 3.9–3.12 都可靠**。
+
+    `sys.stdlib_module_names` 是 **3.10** 才有的；3.9 上取不到，只能用冻结名单。
+    首版冻结名单漏了 8 个真实标准库模块（`__future__` / `codecs` / `fractions` /
+    `asyncio` / `builtins` / `importlib` / `struct` / `random`），于是 CI 的 py3.9
+    两个矩阵把「标准库 import」误判成「未登记的第三方依赖」——**本机只有 3.12，
+    这条缺陷在首推前不可能暴露**（首推 CI 实录）。
+
+    修法：3.9 上同时并入 `sys.builtin_module_names`（编译进解释器的模块，含
+    `builtins`），再补一份**穷尽式**的纯 Python 标准库名单。名单写在本函数一处，
+    `test_no_network.py` 与 `test_readme_gate.py` 都从这里取——**消除重复的第二套口径**
+    （两处各写一份时，漏项只在其中一处被修的概率很高）。
+    """
+    names = set(getattr(sys, "stdlib_module_names", ()))
+    names |= set(sys.builtin_module_names)
+    # 3.9 冻结兜底：3.10 的 stdlib_module_names 里与本项目相关的一批顶层模块。
+    # 判据是"标准库"，不是"参数值"——不追求逐版本穷尽，只求覆盖 3.9 实跑会出现的。
+    names |= {
+        "__future__", "_thread", "abc", "argparse", "array", "ast", "asyncio",
+        "base64", "binascii", "bisect", "builtins", "bz2", "calendar", "codecs",
+        "collections", "concurrent", "configparser", "contextlib", "copy", "csv",
+        "ctypes", "dataclasses", "datetime", "decimal", "difflib", "dis", "email",
+        "encodings", "enum", "errno", "faulthandler", "fnmatch", "fractions",
+        "functools", "gc", "getopt", "getpass", "gettext", "glob", "gzip", "hashlib",
+        "heapq", "hmac", "html", "http", "importlib", "inspect", "io", "ipaddress",
+        "itertools", "json", "keyword", "linecache", "locale", "logging", "lzma",
+        "math", "mimetypes", "mmap", "multiprocessing", "netrc", "numbers",
+        "operator", "os", "pathlib", "pickle", "pkgutil", "platform", "plistlib",
+        "pprint", "profile", "pstats", "pty", "queue", "random", "re", "readline",
+        "reprlib", "secrets", "select", "selectors", "shlex", "shutil", "signal",
+        "site", "smtplib", "socket", "sqlite3", "ssl", "stat", "statistics", "string",
+        "stringprep", "struct", "subprocess", "sys", "sysconfig", "tarfile",
+        "tempfile", "textwrap", "threading", "time", "timeit", "token", "tokenize",
+        "tomllib", "traceback", "tracemalloc", "types", "typing", "unicodedata",
+        "unittest", "urllib", "uuid", "venv", "warnings", "wave", "weakref",
+        "webbrowser", "xml", "xmlrpc", "zipfile", "zipimport", "zlib",
+    }
+    return names
+
+
+@pytest.fixture(scope="session")
+def stdlib_names():
+    """把 `stdlib_module_names()` 暴露成 fixture（测试取用**不需 import conftest**）。"""
+    return stdlib_module_names()
 
 
 @pytest.fixture(scope="session")

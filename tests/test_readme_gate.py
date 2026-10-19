@@ -9,7 +9,6 @@
 import argparse
 import ast
 import re
-import sys
 from pathlib import Path
 
 import yaml
@@ -33,19 +32,14 @@ def _pyproject():
         return _toml.load(fh)
 
 
-def _stdlib_names():
-    """3.10+ 有 stdlib_module_names；更早版本用冻结名单（判定词表，不是参数值）。"""
-    names = set(getattr(sys, "stdlib_module_names", ()))
-    if names:
-        return names
-    return {
-        "abc", "argparse", "ast", "collections", "contextlib", "csv", "dataclasses",
-        "datetime", "decimal", "enum", "errno", "fnmatch", "functools", "glob",
-        "hashlib", "io", "itertools", "json", "logging", "math", "os", "pathlib",
-        "platform", "re", "shutil", "sqlite3", "statistics", "string", "subprocess",
-        "sys", "tempfile", "textwrap", "time", "tomllib", "typing", "unicodedata",
-        "unittest", "warnings", "xml", "zipfile",
-    }
+def _stdlib_names(stdlib_names):
+    """标准库名单**单点取自 `conftest.stdlib_names` fixture**。
+
+    3.9 没有 `sys.stdlib_module_names`，冻结名单漏项曾在 CI 的 py3.9 矩阵把
+    标准库 import 误判成第三方依赖（首推实录）。名单在 conftest 里只写一份，
+    `test_no_network.py` 与本文件同源——不再各写一套。
+    """
+    return set(stdlib_names)
 
 
 def _parser_subcommands():
@@ -123,7 +117,7 @@ def _runtime_import_names():
     return names
 
 
-def test_dev_extras_cover_test_imports():
+def test_dev_extras_cover_test_imports(stdlib_names):
     """测试套件真 import 的每个第三方库都必须在**安装面**里。
 
     安装面 = dev extra ∪ 运行时依赖：`pip install -e ".[dev]"` 会把两者一起装上，
@@ -131,6 +125,7 @@ def test_dev_extras_cover_test_imports():
     这条门拦的是**第四方**：某个测试顺手 import 了一个没人登记、装包时不会出现的库。
     """
     allowed = _dev_import_names() | _runtime_import_names()
+    stdlib = _stdlib_names(stdlib_names)
 
     imported = set()
     for path in sorted((ROOT / "tests").glob("*.py")):
@@ -140,7 +135,7 @@ def test_dev_extras_cover_test_imports():
                 imported |= {a.name.split(".")[0] for a in node.names}
             elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
                 imported.add(node.module.split(".")[0])
-    third_party = {name.lower() for name in imported - _stdlib_names() - {"testdeck"}}
+    third_party = {name.lower() for name in imported - stdlib - {"testdeck"}}
     assert third_party, "扫描面为空：测试没有 import 任何第三方库"
     missing = third_party - allowed
     assert missing == set(), "测试引入了安装面之外的第三方包：%s" % sorted(missing)
@@ -156,7 +151,7 @@ REPO_SCRIPT_SKIP_DIRS = {"node_modules", "__pycache__", ".tmp", ".playwright",
                          "test-results"}
 
 
-def _repo_script_import_names():
+def _repo_script_import_names(stdlib):
     """扫 `tools/` `bench/` `data/` 下 `.py` 的第三方 import（去掉 stdlib 与本仓包）。"""
     imported = set()
     for root_name in REPO_SCRIPT_ROOTS:
@@ -175,10 +170,10 @@ def _repo_script_import_names():
                     imported |= {a.name.split(".")[0] for a in node.names}
                 elif isinstance(node, ast.ImportFrom) and not node.level and node.module:
                     imported.add(node.module.split(".")[0])
-    return {name.lower() for name in imported - _stdlib_names() - {"testdeck"}}
+    return {name.lower() for name in imported - stdlib - {"testdeck"}}
 
 
-def test_dev_extras_cover_repo_script_imports():
+def test_dev_extras_cover_repo_script_imports(stdlib_names):
     """测试**动态装载**的仓库脚本（`tools/` `bench/` `data/`）的第三方 import 也必须在安装面内。
 
     M6 干净环境验证实录：`tests/test_demo_gif.py` 按路径装载 `tools/make-demo-gif.py`，
@@ -187,7 +182,7 @@ def test_dev_extras_cover_repo_script_imports():
     干净环境 6 例红。这条门把扫描面扩到那三处，让"测试跑得到的代码"与"安装面"对齐。
     """
     allowed = _dev_import_names() | _runtime_import_names()
-    third_party = _repo_script_import_names()
+    third_party = _repo_script_import_names(_stdlib_names(stdlib_names))
     assert third_party, "扫描面为空：tools/bench/data 下没有任何第三方 import"
     missing = third_party - allowed
     assert missing == set(), (
