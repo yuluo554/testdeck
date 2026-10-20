@@ -226,3 +226,52 @@ branch push 的 CI 已在 §1.4 记录（tag 前）。本节只留 **tag push** 
 
 **本表唯一保留的非"实现"态是 `SIG_DELIVERY`（SKIP）**——那是 `check_release.py` 自身对
 "标题未含可机械核对能力名词"的跳过判定，不是本项目的缺口。
+
+---
+
+## 追加栏（v0.1.0 tag 之后；tag 树不变，包字节不受影响）
+
+登记时间 2026-10-20，二次迭代执行对话（诊断报告 `update/00-诊断报告.md`，路线 `update/01-迭代路线.md`）。
+
+### 追加① 附件树 pytest = 471 passed / 5 failed（DEC1=A 修复）
+
+v0.1.0 附件解包树（装包 + 解包树 cwd 跑 pytest，dev 依赖装齐）实测：
+
+```
+5 failed, 471 passed in 38.64s，exit 1
+FAILED tests/test_demo_gif.py::test_demo_gif_is_committed
+FAILED tests/test_demo_gif.py::test_demo_gif_header_is_gif89a
+FAILED tests/test_demo_gif.py::test_demo_gif_is_animated_and_under_30s
+FAILED tests/test_demo_gif.py::test_maker_check_mode_passes   （缺 docs\demo\demo.gif）
+FAILED tests/test_readme_gate.py::test_ci_workflow_parses_and_has_required_steps
+（FileNotFoundError: ...\.github\workflows\ci.yml）
+```
+
+根因：`MANIFEST.in` 有 `recursive-include tests *.py` 但没有 `include .github/workflows/ci.yml`
+与 `recursive-include docs *`——测试引用面（ci.yml、demo.gif）没进 sdist。
+§一第 175 行把「sdist vs git-archive 独有项」登记为正常形态是对的，但漏登记
+**附件树 5 fail** 这一实际后果；:197「源码包自足」对测试引用面当时不成立。
+处置（DEC1=A）：MANIFEST.in 补两行 include，发 0.1.1；修复后附件树 pytest = 476 passed exit 0（见追加④）。
+
+### 追加② sdist 字节级复现口径（DEC2=A）
+
+从 tag worktree 重建 sdist 得 sha256 `ec1c3fef…` ≠ 附件 `740b87b7…`——tar 元数据含 mtime，
+`python -m build --sdist` **不承诺字节级复现**。承诺口径 = **成员集合与内容一致**：
+129 成员、0 内容差异，两次独立实测。后续验收一律按此口径，不再以「重建哈希不同」为缺陷。
+
+### 追加③ 「476」的三种口径
+
+- git 树（main / tag worktree / git archive 解包树）：**476 passed**；
+- v0.1.0 附件树（修复前）：**471 passed / 5 failed**（见追加①，未区分标注是本登记项的缺口）；
+- CI 矩阵：4 job 各自全绿。
+引用「476」时必须带口径；附件树口径在 0.1.1 起与 git 树一致。
+
+### 追加④ 0.1.1 发布事实（tag 前栏；哈希见 Release 正文，此处不写哈希）
+
+- DEC3=A：license 改 SPDX `"MIT"` + 删 License classifier + `setuptools>=77`；
+  `requires-python >=3.12`（3.9 已于 2025-10-31 EOL）；CI 矩阵收 `["3.12"]`（仍 ubuntu/windows 双 OS）；
+  actions `checkout@v7` / `setup-python@v7`；删 dev extra 的 tomli 行（3.12 收口后 tomllib 内置）。
+- 版本 0.1.0 → **0.1.1**（`src/testdeck/__init__.py`，pyproject dynamic 跟随）。
+- 新增守门 `tests/test_manifest_coverage.py`（断言 MANIFEST.in 覆盖 ci.yml 与 docs）。
+- 附件 `testdeck-0.1.1.tar.gz` 由 `py -3.12 -m build --sdist` 构建；sha256 只写 Release 正文（两栏纪律延续）。
+- tag v0.1.1 / Release / 附件上传：**用户本人执行**（执行方不发版）。

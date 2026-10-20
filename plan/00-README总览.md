@@ -297,7 +297,7 @@
 | --- | --- | --- |
 | 布局门 | `py -3.12 tools/check-sprint-layout.py` | 全绿；`LAYOUT.RELEASE` 生效（两栏 + 覆盖对账 + 三态行 ≥3） |
 | 布局门自身变异 | `py -3.12 tools/verify-layout-gate.py` | **8 组**变异全按预期变红（新增 M8 验发布门两栏），还原后全绿 |
-| 全量测试 | `py -3.12 -m pytest` | **476 passed**（M5 为 474；+1 = 仓库脚本安装面门，+1 = 跨盘符回落用例） |
+| 全量测试 | `py -3.12 -m pytest` | **476 passed**（口径 = git 树；M5 为 474；+1 = 仓库脚本安装面门，+1 = 跨盘符回落用例；v0.1.0 附件树为 471/5，0.1.1 起附件树同此口径，见 RELEASE-M6 追加①③） |
 | 干净环境验证 | `git archive HEAD` → 中立目录 → 新 venv → `pip install -e ".[dev]"` → README 逐条 | **8 条命令全 exit 0**；两通路（裸 `testdeck` / `python -m testdeck`）`selftest` 均 0；`pytest` 全绿 |
 | 首推 CI | `gh run list --workflow ci.yml` | 四矩阵 3.9/3.12 × ubuntu/windows 实跑；首跑 1 红（暴露 py3.9 标准库名单 + 跨盘符断言两缺陷）→ 修复后全绿（run 39206916398 / 39207422066） |
 | 干净环境抓到的缺陷 | 同上 | **2 处**：① `Pillow` 未进 dev extra（干净环境 6 例红）② 字体硬编码 `C:/Windows/Fonts/simsun.ttc`（ubuntu CI 会 `OSError`）——均已修，并补安装面门 |
