@@ -4,6 +4,9 @@ include pyproject.toml
 include MANIFEST.in
 include AGENTS.md
 include data/README.md
+# 测试引用面：tests 里有测试直接读仓库工作流与演示 GIF，缺失会让附件树 pytest 红（v0.1.0 附件 471/5 的根因）
+include .github/workflows/ci.yml
+recursive-include docs *.md *.gif
 recursive-include src/testdeck/rules *.json
 recursive-include plan *.md
 recursive-include tools *.py
