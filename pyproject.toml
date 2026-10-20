@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,15 +7,13 @@ name = "testdeck"
 dynamic = ["version"]
 description = "测试结果终端工作台：把多次 run 的 JUnit XML 归一到本地 SQLite，用三栏 TUI 看谁在抖、谁在变慢、这次是不是新坏"
 readme = "README.md"
-requires-python = ">=3.9"
-license = { text = "MIT" }
+requires-python = ">=3.12"
+license = "MIT"
 authors = [{ name = "yuluo554" }]
 keywords = ["junit", "tui", "textual", "flaky", "test-report", "ci"]
 classifiers = [
     "Environment :: Console",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Testing",
     "Topic :: Terminals",
@@ -23,7 +21,7 @@ classifiers = [
 dependencies = ["textual>=1.0,<9"]
 
 [project.optional-dependencies]
-dev = ["pytest>=7,<9", "PyYAML>=6,<7", "Pillow>=10.1", 'tomli>=2; python_version < "3.11"']
+dev = ["pytest>=7,<9", "PyYAML>=6,<7", "Pillow>=10.1"]
 
 [project.urls]
 Homepage = "https://github.com/yuluo554/testdeck"

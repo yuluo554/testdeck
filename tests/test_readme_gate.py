@@ -15,10 +15,7 @@ import yaml
 
 from testdeck import cli
 
-try:  # 3.11+
-    import tomllib as _toml
-except ModuleNotFoundError:  # pragma: no cover - 3.9 / 3.10 走 tomli
-    import tomli as _toml  # type: ignore[no-redef]
+import tomllib as _toml  # floor 已收 >=3.12，tomllib 内置（3.9/3.10 兜底分支随 DEC3=A 删除）
 
 ROOT = Path(__file__).resolve().parents[1]
 
