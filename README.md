@@ -21,8 +21,8 @@ CI 页面只回答"这一次 run 红不红"。跨 run 的问题——同一用�
 | M5 | 慢测试与回归 + 导出与门禁 + 录屏 | ✅ 已完成（2026-10-19） |
 | M6 | 脱敏发布（tag + Release + 发布留档） | ✅ 已完成（2026-10-19） |
 
-**M6（发布态）**：`v0.1.0` 已打 annotated tag 并发布 GitHub Release（附手工源码包
-`testdeck-0.1.0.tar.gz`）；发布留档在 `plan/RELEASE-M6.md`（tag 前事实 / tag 后追加事实两栏 +
+**M6（发布态）**：`v0.1.1` 已打 annotated tag 并发布 GitHub Release（附手工源码包
+`testdeck-0.1.1.tar.gz`）；发布留档在 `plan/RELEASE-M6.md`（tag 前事实 / tag 后追加事实两栏 +
 阶段 7 覆盖对账表）。随包读者请以 **Release 页**为准判断发布状态——本 README 只写"版本 + 能力"。
 
 **M5 现状（最新功能）**：`S` 视图每条用例带 `slow.py` 的 **p50 / p95 / 回归三态标记**
